@@ -1,38 +1,297 @@
-.App {
-  text-align: center;
+:root {
+  --bg: #0f172a;
+  --bg-elevated: #020617;
+  --bg-card: #020617;
+  --border-subtle: rgba(148, 163, 184, 0.35);
+  --accent: #22c55e;
+  --accent-soft: rgba(34, 197, 94, 0.15);
+  --accent-strong: #22c55e;
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+  --text-strong: #f9fafb;
+  --danger: #f97373;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: radial-gradient(circle at top left, #111827 0, #020617 45%, #000 100%);
+  color: var(--text-main);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+.app-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.app-header {
+  padding: 1.75rem 2rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  background: radial-gradient(circle at top left, #0b1120 0, #020617 55%, #000 100%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.app-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.03em;
+  color: var(--text-strong);
+}
+
+.app-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.app-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.overview-card {
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  padding: 1.25rem 1.5rem;
+  background: radial-gradient(circle at top left, #020617 0, #020617 55%, #000 100%);
+}
+
+.overview-card h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  color: var(--text-strong);
+}
+
+.overview-card h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.overview-card p {
+  margin: 0.25rem 0;
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
+.overview-card ul {
+  margin: 0.25rem 0 0.25rem 1.1rem;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.card {
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  padding: 1.25rem 1.5rem 1.4rem;
+  background: radial-gradient(circle at top left, #020617 0, #020617 55%, #000 100%);
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.85);
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text-strong);
+}
+
+.card-intro {
+  margin: 0.4rem 0 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.field span {
+  color: var(--text-main);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+input,
+textarea,
+select {
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  padding: 0.45rem 0.6rem;
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--text-main);
+  font: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.5);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.primary-button {
+  margin-top: 0.15rem;
+  border-radius: 999px;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #020617;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 35px rgba(34, 197, 94, 0.55);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+}
+
+.primary-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(34, 197, 94, 0.65);
+}
+
+.primary-button:disabled {
+  opacity: 0.7;
+  cursor: default;
+  box-shadow: none;
+}
+
+.ghost-button {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-main);
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.ghost-button:hover {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(248, 113, 113, 0.8);
+}
+
+.status {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.status-success {
+  background: var(--accent-soft);
+  color: var(--text-main);
+}
+
+.status-error {
+  background: rgba(248, 113, 113, 0.13);
+  color: var(--danger);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.table-wrapper {
+  margin-top: 0.4rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(30, 64, 175, 0.8);
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+thead {
+  background: radial-gradient(circle at top left, #0b1120 0, #020617 100%);
+}
+
+th,
+td {
+  padding: 0.55rem 0.75rem;
+}
+
+th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(30, 64, 175, 0.9);
+}
+
+tbody tr:nth-child(even) {
+  background: rgba(15, 23, 42, 0.65);
+}
+
+tbody tr:nth-child(odd) {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.numeric {
+  text-align: right;
+}
+
+.actions {
+  text-align: right;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  color: var(--accent-strong);
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    padding-inline: 1.25rem;
   }
-  to {
-    transform: rotate(360deg);
+
+  .app-main {
+    padding-inline: 1.25rem;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
   }
 }
