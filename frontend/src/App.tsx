@@ -1,4 +1,4 @@
-import React, { FormEvent, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./App.css";
 
 type InvoiceSummary = {
@@ -81,7 +81,9 @@ function App() {
     setGenerateForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleGenerateSubmit = async (e: FormEvent) => {
+  const handleGenerateSubmit = async (
+    e: React.SyntheticEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
     setGenerateLoading(true);
     setGenerateMessage(null);
@@ -150,7 +152,9 @@ function App() {
     }
   };
 
-  const handleCreateCredit = async (e: FormEvent) => {
+  const handleCreateCredit = async (
+    e: React.SyntheticEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
     setCreditLoading(true);
     setCreditError(null);
