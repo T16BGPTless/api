@@ -1,0 +1,277 @@
+openapi: 3.0.3
+info:
+  title: Invoicing & Credits API
+  version: 1.0.0
+  description: |
+    API for generating invoices, listing and managing invoices, exporting UBL XML, raising credits, and applying credits.
+
+servers:
+  - url: https://api.example.com
+
+tags:
+  - name: Invoices
+
+paths:
+  /v1/invoices/generate:
+    post:
+      tags: [Invoices]
+      summary: Generate a standard invoice
+      description: |
+        Creates a UBL XML invoice given the correct data. If given a previous invoice ID or template invoice ID will fill that data into the unspecified fields.
+      
+      parameters:
+        - $ref: "#/components/parameters/APItoken"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInvoiceRequest"
+
+      responses:
+        "201":
+          description: Created. Returns the standardised and compliant UBL XML document.
+          headers:
+            InvoiceID:
+              description: ID of the newly created invoice
+              schema:
+                type: string
+                example: INV-12345
+
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/UBLInvoiceExample"
+
+  /v1/invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      description: Provides a list of all invoices.
+
+      parameters:
+        - $ref: "#/components/parameters/APItoken"
+    
+      responses:
+        "200":
+          description: OK. Returns an array of InvoiceSummary objects with metadata.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: "INV-12345"
+                  
+        "400":
+          description: Error 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/invoices/{invoiceId}:
+    parameters:
+      - $ref: "#/components/parameters/APItoken"
+      - $ref: "#/components/parameters/InvoiceId"
+    get:
+      tags: [Invoices]
+      summary: Get invoice
+      description: Given a valid invoiceId, returns the invoice XML
+      responses:
+        "200":
+          description: Returns the standardised and compliant UBL XML document.
+          headers:
+            InvoiceID:
+              description: ID of the invoice
+              schema:
+                type: string
+                example: INV-12345
+
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/UBLInvoiceExample"
+
+
+        "404":
+          description: Invoice ID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/deleteInvoices:
+    delete:
+      tags: [Invoices]
+      summary: delete all invoices
+      description: deletes all invoices from our backend.
+
+      parameters:
+        - $ref: "#/components/parameters/APItoken"
+    
+      responses:
+        "200":
+          description: OK. returns a list of all invoices that are now deletd
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  example: "INV-12345"
+
+
+        "400":
+          description: Error 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/deleteInvoices/{invoiceId}:
+    parameters:
+      - $ref: "#/components/parameters/APItoken"
+      - $ref: "#/components/parameters/InvoiceId"
+    delete:
+      tags: [Invoices]
+      summary: delete invoice
+      description: Given a valid invoiceId, delets and returns the invoice XML
+      responses:
+        "200":
+          description: Returns the deleted standardised and compliant UBL XML document.
+
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/UBLInvoiceExample"
+
+        "404":
+          description: Invoice ID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  parameters:
+    InvoiceId:
+      name: invoiceId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: invoiceId
+      
+    APItoken: 
+      name: APItoken
+      in: header
+      required: true
+      description: clients API token
+      schema:
+        type: string
+
+  schemas:
+    GenerateInvoiceRequest:
+      type: object
+      properties:
+
+        templateInvoice:
+          type: string
+          description: The InvoiceID to base unfilled fields off of. can be a template or a previous document 
+
+        InvoiceData:
+          type: object
+          description: Full invoice representation.
+          properties:
+            invoiceId:
+              type: string
+            status:
+              type: string
+            customerId:
+              type: string
+            issueDate:
+              type: string
+              format: date
+            dueDate:
+              type: string
+              format: date
+            totalAmount:
+              type: number
+              format: double
+            currency:
+              type: string
+              example: AUD
+            lines:
+              type: array
+              items:
+                type: object
+                properties:
+                  lineId:
+                    type: string
+                  description:
+                    type: string
+                  quantity:
+                    type: number
+                  unitPrice:
+                    type: number
+                  lineTotal:
+                    type: number
+          required:
+            - invoiceId
+            - status
+            - totalAmount
+
+
+        
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    UBLInvoiceExample:
+      example: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+          <cbc:ID>123</cbc:ID>
+          <cbc:IssueDate>2011-09-22</cbc:IssueDate>
+          <cac:InvoicePeriod>
+            <cbc:StartDate>2011-08-01</cbc:StartDate>
+            <cbc:EndDate>2011-08-31</cbc:EndDate>
+          </cac:InvoicePeriod>
+          <cac:AccountingSupplierParty>
+            <cac:Party>
+              <cac:PartyName>
+                <cbc:Name>Custom Cotter Pins</cbc:Name>
+              </cac:PartyName>
+            </cac:Party>
+          </cac:AccountingSupplierParty>
+          <cac:AccountingCustomerParty>
+            <cac:Party>
+              <cac:PartyName>
+                <cbc:Name>North American Veeblefetzer</cbc:Name>
+              </cac:PartyName>
+            </cac:Party>
+          </cac:AccountingCustomerParty>
+          <cac:LegalMonetaryTotal>
+            <cbc:PayableAmount currencyID="CAD">100.00</cbc:PayableAmount>
+          </cac:LegalMonetaryTotal>
+          <cac:InvoiceLine>
+            <cbc:ID>1</cbc:ID>
+            <cbc:LineExtensionAmount currencyID="CAD">100.00</cbc:LineExtensionAmount>
+            <cac:Item>
+              <cbc:Description>Cotter pin, MIL-SPEC</cbc:Description>
+            </cac:Item>
+          </cac:InvoiceLine>
+        </Invoice>
+      additionalProperties: true
