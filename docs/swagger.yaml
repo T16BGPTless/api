@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Invoicing & Credits API
+  title: GPTless Invoivcing API
   version: 1.0.0
   description: |
-    API for generating invoices, listing and managing invoices, exporting UBL XML, raising credits, and applying credits.
+    API for generating invoices
 
 servers:
   - url: https://api.example.com
@@ -261,3 +261,4 @@ components:
           </cac:InvoiceLine>
         </Invoice>
       additionalProperties: true
+
