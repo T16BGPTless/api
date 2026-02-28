@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: GPTless Invoiceing API
+  title: Invoicing & Credits API
   version: 1.0.0
   description: |
-    API for generating invoices
+    API for generating invoices, listing and managing invoices, exporting UBL XML, raising credits, and applying credits.
 
 servers:
   - url: https://api.example.com
@@ -36,8 +36,8 @@ paths:
             InvoiceID:
               description: ID of the newly created invoice
               schema:
-                type: string
-                example: INV-12345
+                type: number
+                example: 12345
 
           content:
             application/xml:
@@ -61,8 +61,8 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
-                  example: "INV-12345"
+                  type: number
+                  example: "12345"
                   
         "400":
           description: Error 
@@ -86,8 +86,8 @@ paths:
             InvoiceID:
               description: ID of the invoice
               schema:
-                type: string
-                example: INV-12345
+                type: number
+                example: 12345
 
           content:
             application/xml:
@@ -102,41 +102,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /v1/deleteInvoices:
     delete:
       tags: [Invoices]
-      summary: delete all invoices
-      description: deletes all invoices from our backend.
-
-      parameters:
-        - $ref: "#/components/parameters/APItoken"
-    
-      responses:
-        "200":
-          description: OK. returns a list of all invoices that are now deletd
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
-                  example: "INV-12345"
-
-
-        "400":
-          description: Error 
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /v1/deleteInvoices/{invoiceId}:
-    parameters:
-      - $ref: "#/components/parameters/APItoken"
-      - $ref: "#/components/parameters/InvoiceId"
-    delete:
-      tags: [Invoices]
-      summary: delete invoice
+      summary: Delete invoice
       description: Given a valid invoiceId, delets and returns the invoice XML
       responses:
         "200":
@@ -153,6 +121,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+
+    
 
 components:
   parameters:
@@ -187,10 +158,26 @@ components:
           properties:
             invoiceId:
               type: string
-            status:
-              type: string
-            customerId:
-              type: string
+            supplier:
+              type: object
+
+              properties:
+                name: 
+                  type: string
+                ABN:
+                  type: number
+                  example: 12345678987
+                
+
+            customer: 
+              type: object
+              properties:
+                name: 
+                  type: string
+                ABN:
+                  type: number
+                  example: 12345678987
+
             issueDate:
               type: string
               format: date
@@ -203,6 +190,7 @@ components:
             currency:
               type: string
               example: AUD
+
             lines:
               type: array
               items:
@@ -218,13 +206,11 @@ components:
                     type: number
                   lineTotal:
                     type: number
+                    
           required:
             - invoiceId
             - status
             - totalAmount
-
-
-        
 
     Error:
       type: object
@@ -275,4 +261,3 @@ components:
           </cac:InvoiceLine>
         </Invoice>
       additionalProperties: true
-
