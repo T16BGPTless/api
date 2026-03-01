@@ -17,7 +17,7 @@ paths:
       tags: [Invoices]
       summary: Generate a standard invoice
       description: |
-        Creates a UBL XML invoice given the correct data. If given a previous invoice ID or template invoice ID will fill that data into the unspecified fields.
+        Creates a UBL XML invoice given the correct data. If given a previous invoiceID or template invoiceID, it will fill that data into the unspecified fields.
       
       parameters:
         - $ref: "#/components/parameters/APItoken"
@@ -31,18 +31,63 @@ paths:
 
       responses:
         "201":
-          description: Created. Returns the standardised and compliant UBL XML document.
-          headers:
-            InvoiceID:
-              description: ID of the newly created invoice
-              schema:
-                type: number
-                example: 12345
+          description: |
+            **Created**
+            
+            Returns the new UBL XML Invoice.
 
           content:
             application/xml:
               schema:
                 $ref: "#/components/schemas/UBLInvoiceExample"
+
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+        
+        "403":
+          description: |
+            **Forbidden**
+            
+            You do not have access to this template invoice. 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+            
+            InvoiceID of the template invoice does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
 
   /v1/invoices:
     get:
@@ -55,91 +100,398 @@ paths:
     
       responses:
         "200":
-          description: OK. Returns an array of InvoiceSummary objects with metadata.
+          description: |
+            **OK**
+            
+            Returns an array of invoiceIDs.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   type: number
-                  example: "12345"
-                  
-        "400":
-          description: Error 
+              example: [12345, 54321]
+
+        "401":
+          description: |
+            **Unauthorized** 
+            
+            Missing or invalid API token.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
 
-  /v1/invoices/{invoiceId}:
+
+  /v1/invoices/{invoiceID}:
     parameters:
       - $ref: "#/components/parameters/APItoken"
       - $ref: "#/components/parameters/InvoiceId"
     get:
       tags: [Invoices]
       summary: Get invoice
-      description: Given a valid invoiceId, returns the invoice XML
+      description: Given a valid invoiceID, returns the invoice XML
       responses:
         "200":
-          description: Returns the standardised and compliant UBL XML document.
-          headers:
-            InvoiceID:
-              description: ID of the invoice
-              schema:
-                type: number
-                example: 12345
+          description: |
+            **OK**
+
+            Returns the UBL XML Invoice.
 
           content:
             application/xml:
               schema:
                 $ref: "#/components/schemas/UBLInvoiceExample"
 
-
-        "404":
-          description: Invoice ID does not exist.
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+        
+        "403":
+          description: |
+            **Forbidden**
+            
+            You do not have access to this invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+            
+            InvoiceID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
 
     delete:
       tags: [Invoices]
       summary: Delete invoice
-      description: Given a valid invoiceId, delets and returns the invoice XML
+      description: Given a valid invoiceID, deletes and returns the invoice XML
       responses:
         "200":
-          description: Returns the deleted standardised and compliant UBL XML document.
-
+          description: |
+            **OK**
+            
+            Returns the deleted UBL XML Invoice.
           content:
             application/xml:
               schema:
                 $ref: "#/components/schemas/UBLInvoiceExample"
 
-        "404":
-          description: Invoice ID does not exist.
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+        
+        "403":
+          description: |
+            **Forbidden** 
+            
+            You do not have access to this invoice. 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found** 
+            
+            InvoiceID does not exist. 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
 
 
-    
+
+
+  /v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: create an API user
+      description: |
+        creates an API user and generates their API token. These paths are developer only
+      
+      parameters:
+        - $ref: "#/components/parameters/APIdevToken"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupName:
+                  type: string
+                  example: WamWarriors
+              required:
+                - groupName
+                
+
+      responses:
+        "201":
+          description: |
+            **OK** 
+            
+            returns an object with the new groups API token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  APItoken:
+                    type: string
+        
+        "401":
+          description: Unauthorized. Missing or invalid API token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+                
+        
+        "403":
+          description: |
+            **Forbidden**
+            
+            you do not have access to make these changes. These paths are developer only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+
+  /v1/auth/reset:
+    put:
+      tags: [Auth]
+      summary: resets the API token for a group
+      description: |
+        given a group name returns a new token for that group
+      
+      parameters:
+        - $ref: "#/components/parameters/APIdevToken"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupName:
+                  type: string
+                  example: WamWarriors
+              required:
+                - groupName
+                
+      responses:
+        "200":
+          description: |
+            **OK**
+
+            Returns an object with the new API token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  APItoken:
+                    type: string
+
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+                
+        
+        "403":
+          description: |
+            **Forbidden**
+            
+            you do not have access to make these changes. These paths are developer only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+  /v1/auth/revoke:
+    delete:
+      tags: [Auth]
+      summary: removes the API token for a group.
+      description: |
+        removes the API token for a group. note the data is still attached to the group it is just no longer accessible. Can be reactivated with /v1/auth/reset
+      
+      parameters:
+        - $ref: "#/components/parameters/APIdevToken"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupName:
+                  type: string
+                  example: WamWarriors
+              required:
+                - groupName
+                
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            returns an object with the deleted API token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  APItoken:
+                    type: string
+        
+        "401":
+          description: Unauthorized. Missing or invalid API token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+                
+        
+        "403":
+          description: |
+            **Forbidden** 
+            
+            you do not have access to make these changes. These paths are developer only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
 
 components:
   parameters:
     InvoiceId:
-      name: invoiceId
+      name: invoiceID
       in: path
       required: true
       schema:
         type: string
-      description: invoiceId
+      description: invoiceID
       
     APItoken: 
       name: APItoken
       in: header
       required: true
       description: clients API token
+      schema:
+        type: string
+
+    APIdevToken: 
+      name: APIdevToken
+      in: header
+      required: true
+      description: Developer API token
       schema:
         type: string
 
@@ -156,7 +508,7 @@ components:
           type: object
           description: Full invoice representation.
           properties:
-            invoiceId:
+            invoiceID:
               type: string
             supplier:
               type: object
@@ -165,17 +517,16 @@ components:
                 name: 
                   type: string
                 ABN:
-                  type: number
+                  type: string
                   example: 12345678987
                 
-
             customer: 
               type: object
               properties:
                 name: 
                   type: string
                 ABN:
-                  type: number
+                  type: string
                   example: 12345678987
 
             issueDate:
@@ -206,19 +557,14 @@ components:
                     type: number
                   lineTotal:
                     type: number
-                    
-          required:
-            - invoiceId
-            - status
-            - totalAmount
 
     Error:
       type: object
       required:
-        - code
+        - error
         - message
       properties:
-        code:
+        error:
           type: string
         message:
           type: string
@@ -261,4 +607,3 @@ components:
           </cac:InvoiceLine>
         </Invoice>
       additionalProperties: true
-
