@@ -14,40 +14,47 @@ def create_app() -> Flask:
     def _now_date() -> str:
         return date.today().isoformat()
 
+    # ------------------------------------------------ INVOICE GENERATION API ------------------------------------------------
     @app.route("/v1/invoices/generate", methods=["POST"])
     def generate_invoice():
-        data = request.get_json(force=True, silent=True) or {}
-        order_document = data.get("orderDocument")
-        user_data = data.get("userData")
-        contract_reference = data.get("contractReference")
+        # Valide Api Token
+        api_token = request.headers.get("APItoken")
 
-        if not order_document or not user_data or not contract_reference:
+        if not api_token or apitoken not in VALID_API_TOKENS:
             return (
-                jsonify(
-                    {
-                        "code": "BAD_REQUEST",
-                        "message": "orderDocument, userData and contractReference are required",
-                    }
-                ),
-                HTTPStatus.BAD_REQUEST,
+                jsonify({
+                "error": "UNAUTHORIZED",
+                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+                }),
+                HTTPStatus.UNAUTHORIZED,
             )
+        
+        body = request.get_json(force=True, silent=True) or {}
+        template_id = body.get("templateInvoice")
+        invoice_data = body.get("InvoiceData")
 
-        # In a real implementation, contract lookup, pricing, and validation would occur here.
-        invoice_id = str(uuid.uuid4())
-        invoice = {
-            "invoiceId": invoice_id,
-            "status": "DRAFT",
-            "customerId": user_data.get("customerId"),
-            "issueDate": _now_date(),
-            "dueDate": user_data.get("dueDate"),
-            "totalAmount": user_data.get("totalAmount", 0),
-            "currency": user_data.get("currency", "AUD"),
-            "lines": user_data.get("lines", []),
-            "creditsApplied": [],
-        }
-        invoices[invoice_id] = invoice
-        return jsonify(invoice), HTTPStatus.CREATED
+        try:
+            #TODO: ADD XML GENERATION LOGIC HERE
+            # e.g. xml = generate_invoice(body, api_token)
+        except ValueError as e:
+            return (
+                jsonify({
+                    "error": "BAD_REQUEST",
+                    "message": str(e)
+                }),
+                HTTPStatus.BAD_REQUEST,
+            ) 
 
+        
+        return app.response_class(
+            #TODO: RETURN XML HERE
+            # e.g. xml,
+
+            mimetype="application/xml",
+            status=HTTPStatus.CREATED,
+        )
+
+    # ------------------------------------------------ LIST INVOICE API ------------------------------------------------
     @app.route("/v1/invoices", methods=["GET"])
     def list_invoices():
         limit = request.args.get("limit", type=int)
@@ -67,6 +74,7 @@ def create_app() -> Flask:
         ]
         return jsonify(summaries), HTTPStatus.OK
 
+    # ------------------------------------------------ GET SPECIFIC INVOICE API ------------------------------------------------
     @app.route("/v1/invoices/<invoice_id>", methods=["GET"])
     def get_invoice(invoice_id: str):
         invoice = invoices.get(invoice_id)
@@ -77,6 +85,7 @@ def create_app() -> Flask:
             )
         return jsonify(invoice), HTTPStatus.OK
 
+    # ------------------------------------------------ to be deleted ------------------------------------------------
     @app.route("/v1/invoices/<invoice_id>", methods=["PUT"])
     def update_invoice(invoice_id: str):
         invoice = invoices.get(invoice_id)
@@ -101,6 +110,7 @@ def create_app() -> Flask:
         invoices[invoice_id] = invoice
         return jsonify(invoice), HTTPStatus.OK
 
+    # ------------------------------------------------ DELETE INVOICE API ------------------------------------------------
     @app.route("/v1/invoices/<invoice_id>", methods=["DELETE"])
     def delete_invoice(invoice_id: str):
         invoice = invoices.get(invoice_id)
@@ -122,6 +132,7 @@ def create_app() -> Flask:
         invoices.pop(invoice_id, None)
         return ("", HTTPStatus.NO_CONTENT)
 
+    # ------------------------------------------------ check routes / delete / fix/ change to fit swagger ------------------------------------------------
     @app.route("/v1/invoices/<invoice_id>/export", methods=["GET"])
     def export_invoice(invoice_id: str):
         invoice = invoices.get(invoice_id)
