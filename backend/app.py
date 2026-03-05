@@ -1,295 +1,323 @@
-from flask import Flask, jsonify, request
-from http import HTTPStatus
-import uuid
-from datetime import date, datetime
+from flask import Flask
+from routes.invoices import invoices_bp
+from routes.auth import auth_bp
+
+app = Flask(__name__)
+
+# Register route groups
+app.register_blueprint(invoices_bp)
+app.register_blueprint(auth_bp)
+
+@app.route("/")
+def home():
+    return {"message": "Invoice API running"}
+     
+if __name__ == "__main__":
+    app.run(debug=True)
 
 
-def create_app() -> Flask:
-    app = Flask(__name__)
 
-    # In-memory stores for this prototype.
-    invoices = {}
-    credits = {}
 
-    def _now_date() -> str:
-        return date.today().isoformat()
 
-    # ------------------------------------------------ INVOICE GENERATION API ------------------------------------------------
-    @app.route("/v1/invoices/generate", methods=["POST"])
-    def generate_invoice():
-        # Valide Api Token
-        api_token = request.headers.get("APItoken")
 
-        if not api_token or apitoken not in VALID_API_TOKENS:
-            return (
-                jsonify({
-                "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
-                }),
-                HTTPStatus.UNAUTHORIZED,
-            )
+
+
+# ===========================================
+# Below is the old app.py just incase
+# ===========================================
+
+# from flask import Flask, jsonify, request
+# from http import HTTPStatus
+# import uuid
+# from datetime import date, datetime
+
+
+# def create_app() -> Flask:
+#     app = Flask(__name__)
+
+#     # In-memory stores for this prototype.
+#     invoices = {}
+#     credits = {}
+
+#     def _now_date() -> str:
+#         return date.today().isoformat()
+
+#     # ------------------------------------------------ INVOICE GENERATION API ------------------------------------------------
+#     @app.route("/v1/invoices/generate", methods=["POST"])
+#     def generate_invoice():
+#         # Valide Api Token
+#         api_token = request.headers.get("APItoken")
+
+#         if not api_token or apitoken not in VALID_API_TOKENS:
+#             return (
+#                 jsonify({
+#                 "error": "UNAUTHORIZED",
+#                 "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+#                 }),
+#                 HTTPStatus.UNAUTHORIZED,
+#             )
         
-        body = request.get_json(force=True, silent=True) or {}
-        template_id = body.get("templateInvoice")
-        invoice_data = body.get("InvoiceData")
+#         body = request.get_json(force=True, silent=True) or {}
+#         template_id = body.get("templateInvoice")
+#         invoice_data = body.get("InvoiceData")
 
-        try:
-            #TODO: ADD XML GENERATION LOGIC HERE
-            # e.g. xml = generate_invoice(body, api_token)
-        except ValueError as e:
-            return (
-                jsonify({
-                    "error": "BAD_REQUEST",
-                    "message": str(e)
-                }),
-                HTTPStatus.BAD_REQUEST,
-            ) 
+#         try:
+#             #TODO: ADD XML GENERATION LOGIC HERE
+#             # e.g. xml = generate_invoice(body, api_token)
+#         except ValueError as e:
+#             return (
+#                 jsonify({
+#                     "error": "BAD_REQUEST",
+#                     "message": str(e)
+#                 }),
+#                 HTTPStatus.BAD_REQUEST,
+#             ) 
 
         
-        return app.response_class(
-            #TODO: RETURN XML HERE
-            # e.g. xml,
+#         return app.response_class(
+#             #TODO: RETURN XML HERE
+#             # e.g. xml,
 
-            mimetype="application/xml",
-            status=HTTPStatus.CREATED,
-        )
+#             mimetype="application/xml",
+#             status=HTTPStatus.CREATED,
+#         )
 
-    # ------------------------------------------------ LIST INVOICE API ------------------------------------------------
-    @app.route("/v1/invoices", methods=["GET"])
-    def list_invoices():
-        limit = request.args.get("limit", type=int)
-        # Filtering parameters are accepted but not fully implemented in this prototype.
-        all_invoices = list(invoices.values())
-        if limit is not None:
-            all_invoices = all_invoices[:limit]
-        summaries = [
-            {
-                "invoiceId": inv["invoiceId"],
-                "status": inv["status"],
-                "customerId": inv.get("customerId"),
-                "issueDate": inv.get("issueDate"),
-                "totalAmount": inv.get("totalAmount"),
-            }
-            for inv in all_invoices
-        ]
-        return jsonify(summaries), HTTPStatus.OK
+#     # ------------------------------------------------ LIST INVOICE API ------------------------------------------------
+#     @app.route("/v1/invoices", methods=["GET"])
+#     def list_invoices():
+#         limit = request.args.get("limit", type=int)
+#         # Filtering parameters are accepted but not fully implemented in this prototype.
+#         all_invoices = list(invoices.values())
+#         if limit is not None:
+#             all_invoices = all_invoices[:limit]
+#         summaries = [
+#             {
+#                 "invoiceId": inv["invoiceId"],
+#                 "status": inv["status"],
+#                 "customerId": inv.get("customerId"),
+#                 "issueDate": inv.get("issueDate"),
+#                 "totalAmount": inv.get("totalAmount"),
+#             }
+#             for inv in all_invoices
+#         ]
+#         return jsonify(summaries), HTTPStatus.OK
 
-    # ------------------------------------------------ GET SPECIFIC INVOICE API ------------------------------------------------
-    @app.route("/v1/invoices/<invoice_id>", methods=["GET"])
-    def get_invoice(invoice_id: str):
-        invoice = invoices.get(invoice_id)
-        if not invoice:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        return jsonify(invoice), HTTPStatus.OK
+#     # ------------------------------------------------ GET SPECIFIC INVOICE API ------------------------------------------------
+#     @app.route("/v1/invoices/<invoice_id>", methods=["GET"])
+#     def get_invoice(invoice_id: str):
+#         invoice = invoices.get(invoice_id)
+#         if not invoice:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         return jsonify(invoice), HTTPStatus.OK
 
-    # ------------------------------------------------ to be deleted ------------------------------------------------
-    @app.route("/v1/invoices/<invoice_id>", methods=["PUT"])
-    def update_invoice(invoice_id: str):
-        invoice = invoices.get(invoice_id)
-        if not invoice:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        if invoice.get("status") in {"FINAL", "EXPORTED"}:
-            return (
-                jsonify(
-                    {
-                        "code": "CONFLICT",
-                        "message": "Cannot modify a finalised/exported invoice",
-                    }
-                ),
-                HTTPStatus.CONFLICT,
-            )
-        body = request.get_json(force=True, silent=True) or {}
-        # Apply shallow updates to the invoice.
-        invoice.update(body)
-        invoices[invoice_id] = invoice
-        return jsonify(invoice), HTTPStatus.OK
+#     # ------------------------------------------------ to be deleted ------------------------------------------------
+#     @app.route("/v1/invoices/<invoice_id>", methods=["PUT"])
+#     def update_invoice(invoice_id: str):
+#         invoice = invoices.get(invoice_id)
+#         if not invoice:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         if invoice.get("status") in {"FINAL", "EXPORTED"}:
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "CONFLICT",
+#                         "message": "Cannot modify a finalised/exported invoice",
+#                     }
+#                 ),
+#                 HTTPStatus.CONFLICT,
+#             )
+#         body = request.get_json(force=True, silent=True) or {}
+#         # Apply shallow updates to the invoice.
+#         invoice.update(body)
+#         invoices[invoice_id] = invoice
+#         return jsonify(invoice), HTTPStatus.OK
 
-    # ------------------------------------------------ DELETE INVOICE API ------------------------------------------------
-    @app.route("/v1/invoices/<invoice_id>", methods=["DELETE"])
-    def delete_invoice(invoice_id: str):
-        invoice = invoices.get(invoice_id)
-        if not invoice:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        if invoice.get("status") in {"FINAL", "EXPORTED"}:
-            return (
-                jsonify(
-                    {
-                        "code": "CONFLICT",
-                        "message": "Cannot delete a finalised/exported invoice",
-                    }
-                ),
-                HTTPStatus.CONFLICT,
-            )
-        invoices.pop(invoice_id, None)
-        return ("", HTTPStatus.NO_CONTENT)
+#     # ------------------------------------------------ DELETE INVOICE API ------------------------------------------------
+#     @app.route("/v1/invoices/<invoice_id>", methods=["DELETE"])
+#     def delete_invoice(invoice_id: str):
+#         invoice = invoices.get(invoice_id)
+#         if not invoice:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         if invoice.get("status") in {"FINAL", "EXPORTED"}:
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "CONFLICT",
+#                         "message": "Cannot delete a finalised/exported invoice",
+#                     }
+#                 ),
+#                 HTTPStatus.CONFLICT,
+#             )
+#         invoices.pop(invoice_id, None)
+#         return ("", HTTPStatus.NO_CONTENT)
 
-    # ------------------------------------------------ check routes / delete / fix/ change to fit swagger ------------------------------------------------
-    @app.route("/v1/invoices/<invoice_id>/export", methods=["GET"])
-    def export_invoice(invoice_id: str):
-        invoice = invoices.get(invoice_id)
-        if not invoice:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        # Placeholder UBL XML representation for this prototype.
-        xml = f"<Invoice><ID>{invoice_id}</ID><Total>{invoice.get('totalAmount')}</Total></Invoice>"
-        return app.response_class(xml, mimetype="application/xml", status=HTTPStatus.OK)
+#     # ------------------------------------------------ check routes / delete / fix/ change to fit swagger ------------------------------------------------
+#     @app.route("/v1/invoices/<invoice_id>/export", methods=["GET"])
+#     def export_invoice(invoice_id: str):
+#         invoice = invoices.get(invoice_id)
+#         if not invoice:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         # Placeholder UBL XML representation for this prototype.
+#         xml = f"<Invoice><ID>{invoice_id}</ID><Total>{invoice.get('totalAmount')}</Total></Invoice>"
+#         return app.response_class(xml, mimetype="application/xml", status=HTTPStatus.OK)
 
-    @app.route("/v1/credits", methods=["POST"])
-    def create_credit():
-        body = request.get_json(force=True, silent=True) or {}
-        invoice_id = body.get("invoiceId")
-        amount = body.get("amount")
-        if not invoice_id or amount is None:
-            return (
-                jsonify(
-                    {
-                        "code": "BAD_REQUEST",
-                        "message": "invoiceId and amount are required",
-                    }
-                ),
-                HTTPStatus.BAD_REQUEST,
-            )
-        if amount <= 0:
-            return (
-                jsonify(
-                    {
-                        "code": "BAD_REQUEST",
-                        "message": "amount must be positive",
-                    }
-                ),
-                HTTPStatus.BAD_REQUEST,
-            )
-        if invoice_id not in invoices:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        credit_id = str(uuid.uuid4())
-        credit = {
-            "creditId": credit_id,
-            "invoiceId": invoice_id,
-            "status": "CREATED",
-            "amount": amount,
-            "createdAt": datetime.utcnow().isoformat() + "Z",
-        }
-        credits[credit_id] = credit
-        return jsonify(credit), HTTPStatus.CREATED
+#     @app.route("/v1/credits", methods=["POST"])
+#     def create_credit():
+#         body = request.get_json(force=True, silent=True) or {}
+#         invoice_id = body.get("invoiceId")
+#         amount = body.get("amount")
+#         if not invoice_id or amount is None:
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "BAD_REQUEST",
+#                         "message": "invoiceId and amount are required",
+#                     }
+#                 ),
+#                 HTTPStatus.BAD_REQUEST,
+#             )
+#         if amount <= 0:
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "BAD_REQUEST",
+#                         "message": "amount must be positive",
+#                     }
+#                 ),
+#                 HTTPStatus.BAD_REQUEST,
+#             )
+#         if invoice_id not in invoices:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         credit_id = str(uuid.uuid4())
+#         credit = {
+#             "creditId": credit_id,
+#             "invoiceId": invoice_id,
+#             "status": "CREATED",
+#             "amount": amount,
+#             "createdAt": datetime.utcnow().isoformat() + "Z",
+#         }
+#         credits[credit_id] = credit
+#         return jsonify(credit), HTTPStatus.CREATED
 
-    @app.route("/v1/credits/<credit_id>", methods=["GET"])
-    def get_credit(credit_id: str):
-        credit = credits.get(credit_id)
-        if not credit:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Credit not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        return jsonify(credit), HTTPStatus.OK
+#     @app.route("/v1/credits/<credit_id>", methods=["GET"])
+#     def get_credit(credit_id: str):
+#         credit = credits.get(credit_id)
+#         if not credit:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Credit not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         return jsonify(credit), HTTPStatus.OK
 
-    @app.route("/v1/invoices/<invoice_id>/apply-credit", methods=["POST"])
-    def apply_credit(invoice_id: str):
-        invoice = invoices.get(invoice_id)
-        if not invoice:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        body = request.get_json(force=True, silent=True) or {}
-        credit_id = body.get("creditId")
-        amount = body.get("amount")
-        if not credit_id or amount is None:
-            return (
-                jsonify(
-                    {
-                        "code": "BAD_REQUEST",
-                        "message": "creditId and amount are required",
-                    }
-                ),
-                HTTPStatus.BAD_REQUEST,
-            )
-        credit = credits.get(credit_id)
-        if not credit:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Credit not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        if any(c["creditId"] == credit_id for c in invoice.get("creditsApplied", [])):
-            return (
-                jsonify(
-                    {"code": "CONFLICT", "message": "Credit has already been applied"}
-                ),
-                HTTPStatus.CONFLICT,
-            )
-        if amount <= 0 or amount > credit.get("amount", 0):
-            return (
-                jsonify(
-                    {
-                        "code": "BAD_REQUEST",
-                        "message": "Invalid credit amount for application",
-                    }
-                ),
-                HTTPStatus.BAD_REQUEST,
-            )
-        if amount > invoice.get("totalAmount", 0):
-            return (
-                jsonify(
-                    {
-                        "code": "BAD_REQUEST",
-                        "message": "Amount exceeds invoice total",
-                    }
-                ),
-                HTTPStatus.BAD_REQUEST,
-            )
-        applied_credit = {
-            "creditId": credit_id,
-            "amount": amount,
-        }
-        invoice.setdefault("creditsApplied", []).append(applied_credit)
-        invoice["totalAmount"] = invoice.get("totalAmount", 0) - amount
-        invoices[invoice_id] = invoice
-        return jsonify(invoice), HTTPStatus.OK
+#     @app.route("/v1/invoices/<invoice_id>/apply-credit", methods=["POST"])
+#     def apply_credit(invoice_id: str):
+#         invoice = invoices.get(invoice_id)
+#         if not invoice:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         body = request.get_json(force=True, silent=True) or {}
+#         credit_id = body.get("creditId")
+#         amount = body.get("amount")
+#         if not credit_id or amount is None:
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "BAD_REQUEST",
+#                         "message": "creditId and amount are required",
+#                     }
+#                 ),
+#                 HTTPStatus.BAD_REQUEST,
+#             )
+#         credit = credits.get(credit_id)
+#         if not credit:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Credit not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         if any(c["creditId"] == credit_id for c in invoice.get("creditsApplied", [])):
+#             return (
+#                 jsonify(
+#                     {"code": "CONFLICT", "message": "Credit has already been applied"}
+#                 ),
+#                 HTTPStatus.CONFLICT,
+#             )
+#         if amount <= 0 or amount > credit.get("amount", 0):
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "BAD_REQUEST",
+#                         "message": "Invalid credit amount for application",
+#                     }
+#                 ),
+#                 HTTPStatus.BAD_REQUEST,
+#             )
+#         if amount > invoice.get("totalAmount", 0):
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "BAD_REQUEST",
+#                         "message": "Amount exceeds invoice total",
+#                     }
+#                 ),
+#                 HTTPStatus.BAD_REQUEST,
+#             )
+#         applied_credit = {
+#             "creditId": credit_id,
+#             "amount": amount,
+#         }
+#         invoice.setdefault("creditsApplied", []).append(applied_credit)
+#         invoice["totalAmount"] = invoice.get("totalAmount", 0) - amount
+#         invoices[invoice_id] = invoice
+#         return jsonify(invoice), HTTPStatus.OK
 
-    @app.route("/v1/invoices/<invoice_id>/status", methods=["POST"])
-    def update_invoice_status(invoice_id: str):
-        invoice = invoices.get(invoice_id)
-        if not invoice:
-            return (
-                jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
-                HTTPStatus.NOT_FOUND,
-            )
-        body = request.get_json(force=True, silent=True) or {}
-        current_status = body.get("currentStatus")
-        if not current_status:
-            return (
-                jsonify(
-                    {
-                        "code": "UNPROCESSABLE_ENTITY",
-                        "message": "currentStatus is required",
-                    }
-                ),
-                HTTPStatus.UNPROCESSABLE_ENTITY,
-            )
-        invoice["status"] = current_status
-        invoices[invoice_id] = invoice
-        ack = {
-            "invoiceId": invoice_id,
-            "currentStatus": current_status,
-            "message": "Status update recorded",
-        }
-        return jsonify(ack), HTTPStatus.OK
+#     @app.route("/v1/invoices/<invoice_id>/status", methods=["POST"])
+#     def update_invoice_status(invoice_id: str):
+#         invoice = invoices.get(invoice_id)
+#         if not invoice:
+#             return (
+#                 jsonify({"code": "NOT_FOUND", "message": "Invoice not found"}),
+#                 HTTPStatus.NOT_FOUND,
+#             )
+#         body = request.get_json(force=True, silent=True) or {}
+#         current_status = body.get("currentStatus")
+#         if not current_status:
+#             return (
+#                 jsonify(
+#                     {
+#                         "code": "UNPROCESSABLE_ENTITY",
+#                         "message": "currentStatus is required",
+#                     }
+#                 ),
+#                 HTTPStatus.UNPROCESSABLE_ENTITY,
+#             )
+#         invoice["status"] = current_status
+#         invoices[invoice_id] = invoice
+#         ack = {
+#             "invoiceId": invoice_id,
+#             "currentStatus": current_status,
+#             "message": "Status update recorded",
+#         }
+#         return jsonify(ack), HTTPStatus.OK
 
-    return app
+#     return app
 
 
-app = create_app()
+# app = create_app()
 
