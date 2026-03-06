@@ -10,6 +10,7 @@ TEMPLATES = {
     "template2": {"owner": "other_token"}
 }
 
+# ------------------- invoice generation route -------------------
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
 def generate_invoice():
 
@@ -27,7 +28,7 @@ def generate_invoice():
 
     body = request.get_json(silent=True) or {}
     template_id = body.get("templateInvoice")
-    invoice_data = body.get("invoiceData")
+    invoice_data = body.get("InvoiceData")
 
     # Check template exists (404)
     if template_id not in TEMPLATES:
@@ -50,7 +51,7 @@ def generate_invoice():
         )
 
     try:
-        # TODO: ------- XML layout add here!!!!! ---------
+        # TODO: XML layout here (Olivianne)
         xml = f"""
             <Invoice>
                 <Template>{template_id}</Template>
@@ -70,4 +71,28 @@ def generate_invoice():
         xml,
         mimetype="application/xml",
         status=HTTPStatus.CREATED,
+    )
+
+# ------------------- invoice list route -------------------
+@invoices_bp.route("/v1/invoices", methods=["GET"])
+def list_invoices():
+
+    # Validate API token
+    api_token = request.headers.get("APItoken")
+
+    if not api_token or api_token not in VALID_API_TOKENS:
+        return (
+            jsonify({
+                "error": "UNAUTHORIZED",
+                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+            }),
+            HTTPStatus.UNAUTHORIZED,
+        )
+
+    # TODO: Get list here (Joseph)
+    invoice_ids = [12345, 54321]
+
+    return (
+        jsonify(invoice_ids),
+        HTTPStatus.OK,
     )
