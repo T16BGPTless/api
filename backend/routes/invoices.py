@@ -5,6 +5,11 @@ invoices_bp = Blueprint("invoices", __name__)
 
 # Example of storage (might be modified later when it comes to persistence)
 VALID_API_TOKENS = {"abc123"}
+INVOICES = {
+    12345: {"owner": "abc123", "xml": "<Invoice><ID>12345</ID></Invoice>"},
+    54321: {"owner": "abc123", "xml": "<Invoice><ID>54321</ID></Invoice>"}
+}
+
 TEMPLATES = {
     "template1": {"owner": "abc123"},
     "template2": {"owner": "other_token"}
