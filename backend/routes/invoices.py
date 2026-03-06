@@ -64,6 +64,15 @@ def generate_invoice():
             </Invoice>
             """.strip()
 
+        # Generate new invoice ID (might change)
+        new_invoice_id = max(INVOICES.keys(), default=0) + 1
+
+        # Store invoice
+        INVOICES[new_invoice_id] = {
+            "owner": api_token,
+            "xml": xml
+        }
+
     except ValueError as e:
         return (
             jsonify({
