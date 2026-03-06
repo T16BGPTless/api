@@ -3,8 +3,12 @@ from http import HTTPStatus
 
 invoices_bp = Blueprint("invoices", __name__)
 
-# Temporary token store for prototype
-VALID_API_TOKENS = {"demo-token-123"}
+# Example of storage (might be modified later when it comes to persistence)
+VALID_API_TOKENS = {"abc123"}
+TEMPLATES = {
+    "template1": {"owner": "abc123"},
+    "template2": {"owner": "other_token"}
+}
 
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
 def generate_invoice():
@@ -21,23 +25,38 @@ def generate_invoice():
             HTTPStatus.UNAUTHORIZED,
         )
 
-    body = request.get_json(force=True, silent=True) or {}
+    body = request.get_json(silent=True) or {}
     template_id = body.get("templateInvoice")
     invoice_data = body.get("invoiceData")
 
-    # Validate required fields
-    if not template_id or not invoice_data:
+    # Check template exists (404)
+    if template_id not in TEMPLATES:
         return (
             jsonify({
-                "error": "BAD_REQUEST",
-                "message": "templateInvoice and invoiceData are required"
+                "error": "NOT_FOUND",
+                "message": "The requested resource was not found"
             }),
-            HTTPStatus.BAD_REQUEST,
+            HTTPStatus.NOT_FOUND,
+        )
+
+    # Check permission (403)
+    if TEMPLATES[template_id]["owner"] != api_token:
+        return (
+            jsonify({
+                "error": "FORBIDDEN",
+                "message": "You do not have access to this content"
+            }),
+            HTTPStatus.FORBIDDEN,
         )
 
     try:
-        #TODO: Add xml bit here
-        xml = "<Invoice></Invoice>"
+        # TODO: ------- XML layout add here!!!!! ---------
+        xml = f"""
+            <Invoice>
+                <Template>{template_id}</Template>
+            </Invoice>
+            """.strip()
+
     except ValueError as e:
         return (
             jsonify({
