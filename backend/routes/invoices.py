@@ -10,6 +10,7 @@ INVOICES = {
     54321: {"owner": "abc123", "xml": "<Invoice><ID>54321</ID></Invoice>"}
 }
 
+# The XML layout (Needs to be changed later)
 TEMPLATES = {
     "template1": {"owner": "abc123"},
     "template2": {"owner": "other_token"}
@@ -19,7 +20,7 @@ TEMPLATES = {
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
 def generate_invoice():
 
-    # Validate API token
+    # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or api_token not in VALID_API_TOKENS:
@@ -78,11 +79,11 @@ def generate_invoice():
         status=HTTPStatus.CREATED,
     )
 
-# ------------------- invoice list route -------------------
+# ------------------- invoice id list route -------------------
 @invoices_bp.route("/v1/invoices", methods=["GET"])
 def list_invoices():
 
-    # Validate API token
+    # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or api_token not in VALID_API_TOKENS:
@@ -94,10 +95,107 @@ def list_invoices():
             HTTPStatus.UNAUTHORIZED,
         )
 
-    # TODO: Get list here (Joseph)
-    invoice_ids = [12345, 54321]
+    # Get invoices owned by this API token
+    invoice_ids = []
+
+    for invoice_id in INVOICES:
+        if INVOICES[invoice_id]["owner"] == api_token:
+            invoice_ids.append(invoice_id)
 
     return (
         jsonify(invoice_ids),
         HTTPStatus.OK,
+    )
+
+# ------------------- get invoice route -------------------
+@invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["GET"])
+def get_invoice(invoiceID):
+
+    # Validate API token (401)
+    api_token = request.headers.get("APItoken")
+
+    if not api_token or api_token not in VALID_API_TOKENS:
+        return (
+            jsonify({
+                "error": "UNAUTHORIZED",
+                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+            }),
+            HTTPStatus.UNAUTHORIZED,
+        )
+
+    # Check invoice exists (404)
+    if invoiceID not in INVOICES:
+        return (
+            jsonify({
+                "error": "NOT_FOUND",
+                "message": "The requested resource was not found"
+            }),
+            HTTPStatus.NOT_FOUND,
+        )
+
+    invoice = INVOICES[invoiceID]
+
+    # Check permission (403)
+    if invoice["owner"] != api_token:
+        return (
+            jsonify({
+                "error": "FORBIDDEN",
+                "message": "You do not have access to this content"
+            }),
+            HTTPStatus.FORBIDDEN,
+        )
+
+    return Response(
+        invoice["xml"],
+        mimetype="application/xml",
+        status=HTTPStatus.OK,
+    )
+
+# ------------------- delete invoice route -------------------
+@invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["DELETE"])
+def delete_invoice(invoiceID):
+
+    # Validate API token (401)
+    api_token = request.headers.get("APItoken")
+
+    if not api_token or api_token not in VALID_API_TOKENS:
+        return (
+            jsonify({
+                "error": "UNAUTHORIZED",
+                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+            }),
+            HTTPStatus.UNAUTHORIZED,
+        )
+
+    # Check invoice exists (404)
+    if invoiceID not in INVOICES:
+        return (
+            jsonify({
+                "error": "NOT_FOUND",
+                "message": "The requested resource was not found"
+            }),
+            HTTPStatus.NOT_FOUND,
+        )
+
+    invoice = INVOICES[invoiceID]
+
+    # Check permission (403)
+    if invoice["owner"] != api_token:
+        return (
+            jsonify({
+                "error": "FORBIDDEN",
+                "message": "You do not have access to this content"
+            }),
+            HTTPStatus.FORBIDDEN,
+        )
+
+    deleted_xml = invoice["xml"]
+
+    # Delete invoice
+    del INVOICES[invoiceID]
+
+    return Response(
+        deleted_xml,
+        mimetype="application/xml",
+        status=HTTPStatus.OK,
     )
