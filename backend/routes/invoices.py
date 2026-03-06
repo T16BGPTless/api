@@ -16,7 +16,7 @@ TEMPLATES = {
     "template2": {"owner": "other_token"}
 }
 
-# ------------------- invoice generation route -------------------
+# ------------------- POST /v1/invoice/generate  -------------------
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
 def generate_invoice():
 
@@ -79,7 +79,7 @@ def generate_invoice():
         status=HTTPStatus.CREATED,
     )
 
-# ------------------- invoice id list route -------------------
+# ------------------- GET /v1/invoices  -------------------
 @invoices_bp.route("/v1/invoices", methods=["GET"])
 def list_invoices():
 
@@ -107,7 +107,7 @@ def list_invoices():
         HTTPStatus.OK,
     )
 
-# ------------------- get invoice route -------------------
+# ------------------- GET /v1/invoices/<int:invoiceID> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["GET"])
 def get_invoice(invoiceID):
 
@@ -151,7 +151,7 @@ def get_invoice(invoiceID):
         status=HTTPStatus.OK,
     )
 
-# ------------------- delete invoice route -------------------
+# ------------------- DELETE /v1/invoices/<int:invoiceID> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["DELETE"])
 def delete_invoice(invoiceID):
 
