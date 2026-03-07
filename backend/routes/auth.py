@@ -1,6 +1,9 @@
 from flask import Blueprint, jsonify, request
 from http import HTTPStatus
 import uuid
+from supabase.supabase import get_supabase
+
+supabase = get_supabase()
 
 auth_bp = Blueprint("auth", __name__)
 

@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request, Response
 from http import HTTPStatus
+from supabase.supabase import get_supabase
+
+supabase = get_supabase()
 
 invoices_bp = Blueprint("invoices", __name__)
 
