@@ -1,23 +1,31 @@
 from flask import Blueprint, jsonify, request, Response
 from http import HTTPStatus
-from supabase.supabase import get_supabase
+from db.supabase_client import get_supabase
 
 supabase = get_supabase()
 
 invoices_bp = Blueprint("invoices", __name__)
 
-# Example of storage (might be modified later when it comes to persistence)
-VALID_API_TOKENS = {"abc123"}
-INVOICES = {
-    12345: {"owner": "abc123", "xml": "<Invoice><ID>12345</ID></Invoice>"},
-    54321: {"owner": "abc123", "xml": "<Invoice><ID>54321</ID></Invoice>"}
-}
+UNAUTHORIZED_MESSAGE = (
+    "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+)
 
-# The XML layout (Needs to be changed later)
-TEMPLATES = {
-    "template1": {"owner": "abc123"},
-    "template2": {"owner": "other_token"}
-}
+
+def _sb_has_error(resp) -> bool:
+    return getattr(resp, "error", None) is not None
+
+
+def _is_valid_api_token(api_token: str) -> bool:
+    resp = (
+        supabase.table("api_groups")
+        .select("api_token")
+        .eq("api_token", api_token)
+        .limit(1)
+        .execute()
+    )
+    if _sb_has_error(resp):
+        return False
+    return bool(resp.data)
 
 # ------------------- POST /v1/invoice/generate  -------------------
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
@@ -26,11 +34,11 @@ def generate_invoice():
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or api_token not in VALID_API_TOKENS:
+    if not api_token or not _is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+                "message": UNAUTHORIZED_MESSAGE
             }),
             HTTPStatus.UNAUTHORIZED,
         )
@@ -39,8 +47,26 @@ def generate_invoice():
     template_id = body.get("templateInvoice")
     invoice_data = body.get("InvoiceData")
 
-    # Check template exists (404)
-    if template_id not in TEMPLATES:
+    if not template_id:
+        return (
+            jsonify({"error": "BAD_REQUEST", "message": "templateInvoice is required"}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    # Check template exists (404) and permission (403)
+    tmpl_rows = (
+        supabase.table("api_templates")
+        .select("owner_token")
+        .eq("template_id", template_id)
+        .execute()
+    )
+    if _sb_has_error(tmpl_rows):
+        return (
+            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+    if not tmpl_rows.data:
         return (
             jsonify({
                 "error": "NOT_FOUND",
@@ -49,8 +75,7 @@ def generate_invoice():
             HTTPStatus.NOT_FOUND,
         )
 
-    # Check permission (403)
-    if TEMPLATES[template_id]["owner"] != api_token:
+    if not any(row.get("owner_token") == api_token for row in tmpl_rows.data):
         return (
             jsonify({
                 "error": "FORBIDDEN",
@@ -67,14 +92,22 @@ def generate_invoice():
             </Invoice>
             """.strip()
 
-        # Generate new invoice ID (might change)
-        new_invoice_id = max(INVOICES.keys(), default=0) + 1
-
-        # Store invoice
-        INVOICES[new_invoice_id] = {
-            "owner": api_token,
-            "xml": xml
-        }
+        created = (
+            supabase.table("api_invoices")
+            .insert(
+                {
+                    "owner_token": api_token,
+                    "template_id": template_id,
+                    "xml": xml,
+                }
+            )
+            .execute()
+        )
+        if _sb_has_error(created):
+            return (
+                jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
     except ValueError as e:
         return (
@@ -98,21 +131,30 @@ def list_invoices():
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or api_token not in VALID_API_TOKENS:
+    if not api_token or not _is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+                "message": UNAUTHORIZED_MESSAGE
             }),
             HTTPStatus.UNAUTHORIZED,
         )
 
     # Get invoices owned by this API token
-    invoice_ids = []
+    resp = (
+        supabase.table("api_invoices")
+        .select("id")
+        .eq("owner_token", api_token)
+        .order("id", desc=False)
+        .execute()
+    )
+    if _sb_has_error(resp):
+        return (
+            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
-    for invoice_id in INVOICES:
-        if INVOICES[invoice_id]["owner"] == api_token:
-            invoice_ids.append(invoice_id)
+    invoice_ids = [row.get("id") for row in (resp.data or [])]
 
     return (
         jsonify(invoice_ids),
@@ -126,17 +168,29 @@ def get_invoice(invoiceID):
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or api_token not in VALID_API_TOKENS:
+    if not api_token or not _is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+                "message": UNAUTHORIZED_MESSAGE
             }),
             HTTPStatus.UNAUTHORIZED,
         )
 
-    # Check invoice exists (404)
-    if invoiceID not in INVOICES:
+    resp = (
+        supabase.table("api_invoices")
+        .select("owner_token, xml")
+        .eq("id", invoiceID)
+        .limit(1)
+        .execute()
+    )
+    if _sb_has_error(resp):
+        return (
+            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+    if not resp.data:
         return (
             jsonify({
                 "error": "NOT_FOUND",
@@ -145,10 +199,10 @@ def get_invoice(invoiceID):
             HTTPStatus.NOT_FOUND,
         )
 
-    invoice = INVOICES[invoiceID]
+    invoice = resp.data[0]
 
     # Check permission (403)
-    if invoice["owner"] != api_token:
+    if invoice.get("owner_token") != api_token:
         return (
             jsonify({
                 "error": "FORBIDDEN",
@@ -158,7 +212,7 @@ def get_invoice(invoiceID):
         )
 
     return Response(
-        invoice["xml"],
+        invoice.get("xml") or "",
         mimetype="application/xml",
         status=HTTPStatus.OK,
     )
@@ -170,17 +224,29 @@ def delete_invoice(invoiceID):
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or api_token not in VALID_API_TOKENS:
+    if not api_token or not _is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
+                "message": UNAUTHORIZED_MESSAGE
             }),
             HTTPStatus.UNAUTHORIZED,
         )
 
-    # Check invoice exists (404)
-    if invoiceID not in INVOICES:
+    existing = (
+        supabase.table("api_invoices")
+        .select("owner_token, xml")
+        .eq("id", invoiceID)
+        .limit(1)
+        .execute()
+    )
+    if _sb_has_error(existing):
+        return (
+            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+    if not existing.data:
         return (
             jsonify({
                 "error": "NOT_FOUND",
@@ -189,10 +255,10 @@ def delete_invoice(invoiceID):
             HTTPStatus.NOT_FOUND,
         )
 
-    invoice = INVOICES[invoiceID]
+    invoice = existing.data[0]
 
     # Check permission (403)
-    if invoice["owner"] != api_token:
+    if invoice.get("owner_token") != api_token:
         return (
             jsonify({
                 "error": "FORBIDDEN",
@@ -201,10 +267,16 @@ def delete_invoice(invoiceID):
             HTTPStatus.FORBIDDEN,
         )
 
-    deleted_xml = invoice["xml"]
+    deleted_xml = invoice.get("xml") or ""
 
-    # Delete invoice
-    del INVOICES[invoiceID]
+    deleted = (
+        supabase.table("api_invoices").delete().eq("id", invoiceID).execute()
+    )
+    if _sb_has_error(deleted):
+        return (
+            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
     return Response(
         deleted_xml,

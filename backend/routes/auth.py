@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from http import HTTPStatus
 import uuid
-from supabase.supabase import get_supabase
+from db.supabase_client import get_supabase
 
 supabase = get_supabase()
 
@@ -11,7 +11,10 @@ auth_bp = Blueprint("auth", __name__)
 VALID_DEV_TOKENS = {"dev-secret"}
 
 # Store registered groups and their tokens
-GROUPS = {}
+
+
+def _sb_has_error(resp) -> bool:
+    return getattr(resp, "error", None) is not None
 
 # ------------------- POST /v1/auth/register -------------------
 @auth_bp.route("/v1/auth/register", methods=["POST"])
@@ -41,13 +44,49 @@ def register():
     body = request.get_json(silent=True) or {}
     group_name = body.get("groupName")
 
+    if not group_name:
+        return (
+            jsonify({"error": "BAD_REQUEST", "message": "groupName is required"}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    # Prevent duplicate registrations by group name
+    existing = (
+        supabase.table("api_groups")
+        .select("api_token")
+        .eq("group_name", group_name)
+        .limit(1)
+        .execute()
+    )
+    if _sb_has_error(existing):
+        return (
+            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+    if existing.data:
+        return (
+            jsonify(
+                {
+                    "error": "CONFLICT",
+                    "message": "groupName already registered",
+                }
+            ),
+            HTTPStatus.CONFLICT,
+        )
+
     # Generate API token
     api_token = uuid.uuid4().hex
 
-    # Store the group
-    GROUPS[group_name] = {
-        "token": api_token
-    }
+    created = (
+        supabase.table("api_groups")
+        .insert({"group_name": group_name, "api_token": api_token})
+        .execute()
+    )
+    if _sb_has_error(created):
+        return (
+            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
     return (
         jsonify({
