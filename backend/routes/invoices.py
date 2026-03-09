@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, Response
 from http import HTTPStatus
 from db.supabase_client import get_supabase
+from postgrest.exceptions import APIError
 
 supabase = get_supabase()
 
@@ -15,15 +16,22 @@ def _sb_has_error(resp) -> bool:
     return getattr(resp, "error", None) is not None
 
 
+def _sb_execute(builder):
+    try:
+        return builder.execute()
+    except APIError:
+        return None
+
+
 def _is_valid_api_token(api_token: str) -> bool:
-    resp = (
+    builder = (
         supabase.table("api_groups")
         .select("api_token")
         .eq("api_token", api_token)
         .limit(1)
-        .execute()
     )
-    if _sb_has_error(resp):
+    resp = _sb_execute(builder)
+    if resp is None or _sb_has_error(resp):
         return False
     return bool(resp.data)
 
@@ -58,15 +66,20 @@ def generate_invoice():
         supabase.table("api_templates")
         .select("owner_token")
         .eq("template_id", template_id)
-        .execute()
     )
-    if _sb_has_error(tmpl_rows):
+    tmpl_rows_resp = _sb_execute(tmpl_rows)
+    if tmpl_rows_resp is None or _sb_has_error(tmpl_rows_resp):
         return (
-            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                }
+            ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
-    if not tmpl_rows.data:
+    if not tmpl_rows_resp.data:
         return (
             jsonify({
                 "error": "NOT_FOUND",
@@ -75,7 +88,7 @@ def generate_invoice():
             HTTPStatus.NOT_FOUND,
         )
 
-    if not any(row.get("owner_token") == api_token for row in tmpl_rows.data):
+    if not any(row.get("owner_token") == api_token for row in tmpl_rows_resp.data):
         return (
             jsonify({
                 "error": "FORBIDDEN",
@@ -101,11 +114,16 @@ def generate_invoice():
                     "xml": xml,
                 }
             )
-            .execute()
         )
-        if _sb_has_error(created):
+        created_resp = _sb_execute(created)
+        if created_resp is None or _sb_has_error(created_resp):
             return (
-                jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+                jsonify(
+                    {
+                        "error": "INTERNAL_SERVER_ERROR",
+                        "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                    }
+                ),
                 HTTPStatus.INTERNAL_SERVER_ERROR,
             )
 
@@ -146,15 +164,20 @@ def list_invoices():
         .select("id")
         .eq("owner_token", api_token)
         .order("id", desc=False)
-        .execute()
     )
-    if _sb_has_error(resp):
+    resp_exec = _sb_execute(resp)
+    if resp_exec is None or _sb_has_error(resp_exec):
         return (
-            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                }
+            ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
-    invoice_ids = [row.get("id") for row in (resp.data or [])]
+    invoice_ids = [row.get("id") for row in (resp_exec.data or [])]
 
     return (
         jsonify(invoice_ids),
@@ -182,15 +205,20 @@ def get_invoice(invoiceID):
         .select("owner_token, xml")
         .eq("id", invoiceID)
         .limit(1)
-        .execute()
     )
-    if _sb_has_error(resp):
+    resp_exec = _sb_execute(resp)
+    if resp_exec is None or _sb_has_error(resp_exec):
         return (
-            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                }
+            ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
-    if not resp.data:
+    if not resp_exec.data:
         return (
             jsonify({
                 "error": "NOT_FOUND",
@@ -199,7 +227,7 @@ def get_invoice(invoiceID):
             HTTPStatus.NOT_FOUND,
         )
 
-    invoice = resp.data[0]
+    invoice = resp_exec.data[0]
 
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
@@ -238,15 +266,20 @@ def delete_invoice(invoiceID):
         .select("owner_token, xml")
         .eq("id", invoiceID)
         .limit(1)
-        .execute()
     )
-    if _sb_has_error(existing):
+    existing_exec = _sb_execute(existing)
+    if existing_exec is None or _sb_has_error(existing_exec):
         return (
-            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                }
+            ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
-    if not existing.data:
+    if not existing_exec.data:
         return (
             jsonify({
                 "error": "NOT_FOUND",
@@ -255,7 +288,7 @@ def delete_invoice(invoiceID):
             HTTPStatus.NOT_FOUND,
         )
 
-    invoice = existing.data[0]
+    invoice = existing_exec.data[0]
 
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
@@ -270,11 +303,17 @@ def delete_invoice(invoiceID):
     deleted_xml = invoice.get("xml") or ""
 
     deleted = (
-        supabase.table("api_invoices").delete().eq("id", invoiceID).execute()
+        supabase.table("api_invoices").delete().eq("id", invoiceID)
     )
-    if _sb_has_error(deleted):
+    deleted_exec = _sb_execute(deleted)
+    if deleted_exec is None or _sb_has_error(deleted_exec):
         return (
-            jsonify({"error": "INTERNAL_SERVER_ERROR", "message": "Database error"}),
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                }
+            ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 

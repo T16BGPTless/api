@@ -35,12 +35,28 @@ CREATE TABLE IF NOT EXISTS public.api_invoices (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- For this backend, requests are authenticated at the Flask layer.
--- Disable RLS so the anon key works in local dev. If you switch to service_role
--- you can keep RLS enabled (service role bypasses it).
-ALTER TABLE public.api_groups DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.api_templates DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.api_invoices DISABLE ROW LEVEL SECURITY;
+-- Enable RLS on all API tables. Policies below keep behaviour equivalent to
+-- "RLS off" while allowing you to tighten access later if needed.
+ALTER TABLE public.api_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.api_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.api_invoices ENABLE ROW LEVEL SECURITY;
+
+-- Allow all roles full access for now (development-friendly).
+-- You can later restrict these (e.g. TO service_role ONLY, or add predicates).
+CREATE POLICY api_groups_all ON public.api_groups
+  FOR ALL TO public
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY api_templates_all ON public.api_templates
+  FOR ALL TO public
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY api_invoices_all ON public.api_invoices
+  FOR ALL TO public
+  USING (true)
+  WITH CHECK (true);
 
 -- Seed dev data to match the previous in-memory defaults.
 INSERT INTO public.api_groups (group_name, api_token)

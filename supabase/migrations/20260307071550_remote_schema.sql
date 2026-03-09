@@ -554,31 +554,6 @@ CREATE POLICY "verification_tokens_select_owner" ON "public"."verification_token
 
 
 
-
-
-ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."api_keys";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."invoices";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."refresh_tokens";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."users";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."verification_tokens";
-
-
-
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
