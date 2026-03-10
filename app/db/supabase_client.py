@@ -6,7 +6,6 @@ from supabase import Client, create_client
 
 _client: Client | None = None
 
-
 def _load_env() -> None:
     # Load .env from repo root so it works regardless of CWD.
     env_path = Path(__file__).resolve().parents[2] / ".env"
@@ -21,11 +20,10 @@ def get_supabase() -> Client:
     _load_env()
 
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     if not url or not key:
-        raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
-
+        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
+    
     _client = create_client(url, key)
     return _client
-
