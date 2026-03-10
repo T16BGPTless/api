@@ -19,9 +19,7 @@ def get_supabase() -> Client:
 
     if not url or not key:
         raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
-
-    options = ClientOptions(postgrest_client_timeout=10, storage_client_timeout=10)
     
-    client = create_client(url, key, options=options)
+    client = create_client(url, key)
     return client
 
