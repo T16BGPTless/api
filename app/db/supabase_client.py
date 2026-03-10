@@ -15,10 +15,10 @@ def get_supabase() -> Client:
     _load_env()
 
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     if not url or not key:
-        raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
+        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
     
     client = create_client(url, key)
     return client
