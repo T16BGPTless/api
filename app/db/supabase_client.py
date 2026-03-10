@@ -3,9 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from supabase import Client, create_client
-
-_client: Client | None = None
-
+from supabase.lib.client_options import ClientOptions
 
 def _load_env() -> None:
     # Load .env from repo root so it works regardless of CWD.
@@ -14,10 +12,6 @@ def _load_env() -> None:
 
 
 def get_supabase() -> Client:
-    global _client
-    if _client is not None:
-        return _client
-
     _load_env()
 
     url = os.getenv("SUPABASE_URL")
@@ -26,6 +20,8 @@ def get_supabase() -> Client:
     if not url or not key:
         raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
 
-    _client = create_client(url, key)
-    return _client
+    options = ClientOptions(postgrest_client_timeout=10, storage_client_timeout=10)
+    
+    client = create_client(url, key, options=options)
+    return client
 
