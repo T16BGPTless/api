@@ -3,7 +3,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from supabase import Client, create_client
-from supabase.lib.client_options import ClientOptions
+
+_client: Client | None = None
 
 def _load_env() -> None:
     # Load .env from repo root so it works regardless of CWD.
@@ -12,6 +13,10 @@ def _load_env() -> None:
 
 
 def get_supabase() -> Client:
+    global _client
+    if _client is not None:
+        return _client
+
     _load_env()
 
     url = os.getenv("SUPABASE_URL")
@@ -20,6 +25,5 @@ def get_supabase() -> Client:
     if not url or not key:
         raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
     
-    client = create_client(url, key)
-    return client
-
+    _client = create_client(url, key)
+    return _client
