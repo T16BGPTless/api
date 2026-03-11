@@ -4,6 +4,7 @@ from app.app import app
 from http import HTTPStatus
 
 # --------------------------------- FIXTURE --------------------------------- 
+# Creates a mock of a server
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
@@ -11,12 +12,16 @@ def client():
         yield c
 
 # ------------------------------ MOCK SUPABASE ------------------------------ 
+# Creates a mock of a database
 class MockResponse:
     def __init__(self, data, error=None):
         self.data = data
         self.error = error
 
 # ------------------------------- TEST CASES --------------------------------
+# Key notes:
+# the line ' with patch("app.routes.invoices._sb_execute", return_value=mock_invoices): '
+# prevents access to the supabase data. NOTE THIS IS UNIT TESTING
 
 # CASE 1: SUCCESS (DATA FOUND)
 def test_list_invoices_success(client):
