@@ -14,11 +14,11 @@ VALID_DEV_TOKENS = {"dev-secret"}
 # Store registered groups and their tokens
 
 
-def _sb_has_error(resp) -> bool:
+def sb_has_error(resp) -> bool:
     return getattr(resp, "error", None) is not None
 
 
-def _sb_execute(builder):
+def sb_execute(builder):
     try:
         return builder.execute()
     except APIError:
@@ -65,8 +65,8 @@ def register():
         .eq("group_name", group_name)
         .limit(1)
     )
-    existing_resp = _sb_execute(existing)
-    if existing_resp is None or _sb_has_error(existing_resp):
+    existing_resp = sb_execute(existing)
+    if existing_resp is None or sb_has_error(existing_resp):
         return (
             jsonify(
                 {
@@ -94,8 +94,8 @@ def register():
         supabase.table("api_groups")
         .insert({"group_name": group_name, "api_token": api_token})
     )
-    created_resp = _sb_execute(created)
-    if created_resp is None or _sb_has_error(created_resp):
+    created_resp = sb_execute(created)
+    if created_resp is None or sb_has_error(created_resp):
         return (
             jsonify(
                 {

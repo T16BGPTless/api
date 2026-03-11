@@ -12,26 +12,26 @@ UNAUTHORIZED_MESSAGE = (
 )
 
 
-def _sb_has_error(resp) -> bool:
+def sb_has_error(resp) -> bool:
     return getattr(resp, "error", None) is not None
 
 
-def _sb_execute(builder):
+def sb_execute(builder):
     try:
         return builder.execute()
     except APIError:
         return None
 
 
-def _is_valid_api_token(api_token: str) -> bool:
+def is_valid_api_token(api_token: str) -> bool:
     builder = (
         supabase.table("api_groups")
         .select("api_token")
         .eq("api_token", api_token)
         .limit(1)
     )
-    resp = _sb_execute(builder)
-    if resp is None or _sb_has_error(resp):
+    resp = sb_execute(builder)
+    if resp is None or sb_has_error(resp):
         return False
     return bool(resp.data)
 
@@ -42,7 +42,7 @@ def generate_invoice():
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not _is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
@@ -67,8 +67,8 @@ def generate_invoice():
         .select("owner_token")
         .eq("template_id", template_id)
     )
-    tmpl_rows_resp = _sb_execute(tmpl_rows)
-    if tmpl_rows_resp is None or _sb_has_error(tmpl_rows_resp):
+    tmpl_rows_resp = sb_execute(tmpl_rows)
+    if tmpl_rows_resp is None or sb_has_error(tmpl_rows_resp):
         return (
             jsonify(
                 {
@@ -115,8 +115,8 @@ def generate_invoice():
                 }
             )
         )
-        created_resp = _sb_execute(created)
-        if created_resp is None or _sb_has_error(created_resp):
+        created_resp = sb_execute(created)
+        if created_resp is None or sb_has_error(created_resp):
             return (
                 jsonify(
                     {
@@ -149,7 +149,7 @@ def list_invoices():
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not _is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
@@ -165,8 +165,8 @@ def list_invoices():
         .eq("owner_token", api_token)
         .order("id", desc=False)
     )
-    resp_exec = _sb_execute(resp)
-    if resp_exec is None or _sb_has_error(resp_exec):
+    resp_exec = sb_execute(resp)
+    if resp_exec is None or sb_has_error(resp_exec):
         return (
             jsonify(
                 {
@@ -191,7 +191,7 @@ def get_invoice(invoiceID):
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not _is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
@@ -206,8 +206,8 @@ def get_invoice(invoiceID):
         .eq("id", invoiceID)
         .limit(1)
     )
-    resp_exec = _sb_execute(resp)
-    if resp_exec is None or _sb_has_error(resp_exec):
+    resp_exec = sb_execute(resp)
+    if resp_exec is None or sb_has_error(resp_exec):
         return (
             jsonify(
                 {
@@ -252,7 +252,7 @@ def delete_invoice(invoiceID):
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not _is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(api_token):
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
@@ -267,8 +267,8 @@ def delete_invoice(invoiceID):
         .eq("id", invoiceID)
         .limit(1)
     )
-    existing_exec = _sb_execute(existing)
-    if existing_exec is None or _sb_has_error(existing_exec):
+    existing_exec = sb_execute(existing)
+    if existing_exec is None or sb_has_error(existing_exec):
         return (
             jsonify(
                 {
@@ -305,8 +305,8 @@ def delete_invoice(invoiceID):
     deleted = (
         supabase.table("api_invoices").delete().eq("id", invoiceID)
     )
-    deleted_exec = _sb_execute(deleted)
-    if deleted_exec is None or _sb_has_error(deleted_exec):
+    deleted_exec = sb_execute(deleted)
+    if deleted_exec is None or sb_has_error(deleted_exec):
         return (
             jsonify(
                 {
