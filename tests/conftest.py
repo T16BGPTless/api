@@ -1,26 +1,36 @@
 import pytest
-from unittest.mock import MagicMock, patch
-from app.app import app as flask_app 
+from unittest.mock import MagicMock
+from app.app import app
+
 
 @pytest.fixture
 def client():
     """
-    Pytest fixture to create a Flask test client.
-    The test client allows us to make fake HTTP requests to the app
-    without actually running a server.
+    Creates a Flask test client.
+
+    The Flask test client allows us to simulate HTTP requests
+    (GET, POST, DELETE etc.) without actually running a server.
     """
-    with flask_app.test_client() as client:
+    app.config["TESTING"] = True
+    with app.test_client() as client:
         yield client
 
 
 @pytest.fixture
-def mock_supabase():
+def mock_supabase_client(monkeypatch):
     """
-    Pytest fixture to mock the Supabase client.
-    This allows us to simulate database responses without connecting to a real DB.
+    Replace the real Supabase client with a fake one.
+
+    This prevents tests from connecting to the real database.
+    Instead we control what the database returns.
     """
-    with patch("app.routes.invoices.get_supabase") as mock_get_client:
-        # Create a MagicMock object to represent the Supabase client
-        mock_client = MagicMock()
-        mock_get_client.return_value = mock_client
-        yield mock_client
+
+    mock_client = MagicMock()
+
+    # Replace get_supabase() in invoices.py so it returns our fake client
+    monkeypatch.setattr(
+        "app.routes.invoices.get_supabase",
+        lambda: mock_client
+    )
+
+    return mock_client
