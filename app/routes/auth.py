@@ -115,7 +115,7 @@ def register():
 
 # ------------------- PUT /v1/auth/reset -------------------
 @auth_bp.route("/v1/auth/reset", methods=["PUT"])
-def register():
+def reset():
 
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
@@ -205,7 +205,7 @@ def register():
 
 # ------------------- delete /v1/auth/revoke -------------------
 @auth_bp.route("/v1/auth/revoke", methods=["DELETE"])
-def register():
+def revoke():
 
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
@@ -233,7 +233,10 @@ def register():
 
     if not group_name:
         return (
-            jsonify({"error": "BAD_REQUEST", "message": "groupName is required"}),
+            jsonify({
+                "error": "BAD_REQUEST", 
+                "message": "groupName is required"
+            }),
             HTTPStatus.BAD_REQUEST,
         )
 
@@ -242,9 +245,9 @@ def register():
         supabase.table("api_groups")
         .select("api_token")
         .eq("group_name", group_name)
+        .limit(1)
     )
     existing_resp = _sb_execute(existing)
-    api_token = existing_resp.data.api_token
     if existing_resp is None or _sb_has_error(existing_resp):
         return (
             jsonify(
@@ -255,6 +258,7 @@ def register():
             ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
+        
     if not existing_resp.data:
         return (
             jsonify(
@@ -266,8 +270,7 @@ def register():
             HTTPStatus.NOT_FOUND,
         )
 
-    # Generate API token
-    api_token = uuid.uuid4().hex
+    api_token = existing_resp.data.api_token
 
     delete = (
         supabase.table("api_groups")
