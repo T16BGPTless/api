@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from http import HTTPStatus
 import uuid
-from ..db.supabase_client import get_supabase
+from app.db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
 
 supabase = get_supabase()
