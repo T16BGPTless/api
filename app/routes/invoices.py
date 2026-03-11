@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, Response
 from http import HTTPStatus
 from db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
+from services.invoice_xml import build_invoice_xml
 
 supabase = get_supabase()
 
@@ -99,11 +100,7 @@ def generate_invoice():
 
     try:
         # TODO: XML layout here (Olivianne)
-        xml = f"""
-            <Invoice>
-                <Template>{template_id}</Template>
-            </Invoice>
-            """.strip()
+        xml = build_invoice_xml(invoice_data)
 
         created = (
             supabase.table("api_invoices")
