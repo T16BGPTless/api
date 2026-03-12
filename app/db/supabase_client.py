@@ -1,29 +1,26 @@
+"""Supabase client and env loading for the API."""
+
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from supabase import Client, createclient
+from supabase import Client, create_client
 
-client: Client | None = None
-
-def load_env() -> None:
-    # Load .env from repo root so it works regardless of CWD.
-    env_path = Path(__file__).resolve().parents[2] / ".env"
-    load_dotenv(env_path)
+supabase_client: Client | None = None
 
 
 def get_supabase() -> Client:
-    global client
-    if client is not None:
-        return client
+    """Get the Supabase client."""
+    global supabase_client  # pylint: disable=global-statement
+    if supabase_client is not None:
+        return supabase_client
 
-    load_env()
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
     if not url or not key:
         raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
-    
-    client = createclient(url, key)
-    return client
+
+    supabase_client = create_client(url, key)
+    return supabase_client

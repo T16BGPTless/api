@@ -1,6 +1,8 @@
-from flask import Blueprint, jsonify, request
+"""Auth routes."""
+
 from http import HTTPStatus
 import uuid
+from flask import Blueprint, jsonify, request
 from db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
 
@@ -8,44 +10,49 @@ supabase = get_supabase()
 
 auth_bp = Blueprint("auth", __name__)
 
-# Example of storage (might be modified later when it comes to persistence)
+# Valid developer tokens
 VALID_DEV_TOKENS = {"dev-secret"}
-
-# Store registered groups and their tokens
 
 
 def sb_has_error(resp) -> bool:
+    """Check if the response has an error."""
     return getattr(resp, "error", None) is not None
 
 
 def sb_execute(builder):
+    """Execute the builder."""
     try:
         return builder.execute()
     except APIError:
         return None
 
+
 # ------------------- POST /v1/auth/register -------------------
 @auth_bp.route("/v1/auth/register", methods=["POST"])
 def register():
-
+    """Register a new group."""
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
     if not dev_token:
         return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
-            }),
+            jsonify(
+                {
+                    "error": "UNAUTHORIZED",
+                    "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website",
+                }
+            ),
             HTTPStatus.UNAUTHORIZED,
         )
 
     if dev_token not in VALID_DEV_TOKENS:
         return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
+            jsonify(
+                {
+                    "error": "FORBIDDEN",
+                    "message": "You do not have access to this content",
+                }
+            ),
             HTTPStatus.FORBIDDEN,
         )
 
@@ -90,9 +97,8 @@ def register():
     # Generate API token
     api_token = uuid.uuid4().hex
 
-    created = (
-        supabase.table("api_groups")
-        .insert({"group_name": group_name, "api_token": api_token})
+    created = supabase.table("api_groups").insert(
+        {"group_name": group_name, "api_token": api_token}
     )
     created_resp = sb_execute(created)
     if created_resp is None or sb_has_error(created_resp):
@@ -107,8 +113,6 @@ def register():
         )
 
     return (
-        jsonify({
-            "APItoken": api_token
-        }),
+        jsonify({"APItoken": api_token}),
         HTTPStatus.CREATED,
     )

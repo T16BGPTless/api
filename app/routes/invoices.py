@@ -1,5 +1,7 @@
-from flask import Blueprint, jsonify, request, Response
+"""Invoices routes."""
+
 from http import HTTPStatus
+from flask import Blueprint, jsonify, request, Response
 from db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
 
@@ -7,16 +9,16 @@ supabase = get_supabase()
 
 invoices_bp = Blueprint("invoices", __name__)
 
-UNAUTHORIZED_MESSAGE = (
-    "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
-)
+UNAUTHORIZED_MESSAGE = "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
 
 
 def sb_has_error(resp) -> bool:
+    """Check if the response has an error."""
     return getattr(resp, "error", None) is not None
 
 
 def sb_execute(builder):
+    """Execute the builder."""
     try:
         return builder.execute()
     except APIError:
@@ -24,6 +26,7 @@ def sb_execute(builder):
 
 
 def is_valid_api_token(api_token: str) -> bool:
+    """Check if the API token is valid."""
     builder = (
         supabase.table("api_groups")
         .select("api_token")
@@ -35,19 +38,17 @@ def is_valid_api_token(api_token: str) -> bool:
         return False
     return bool(resp.data)
 
+
 # ------------------- POST /v1/invoice/generate  -------------------
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
 def generate_invoice():
-
+    """Generate an invoice."""
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(api_token):
         return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": UNAUTHORIZED_MESSAGE
-            }),
+            jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,
         )
 
@@ -81,39 +82,40 @@ def generate_invoice():
 
     if not tmpl_rows_resp.data:
         return (
-            jsonify({
-                "error": "NOT_FOUND",
-                "message": "The requested resource was not found"
-            }),
+            jsonify(
+                {
+                    "error": "NOT_FOUND",
+                    "message": "The requested resource was not found",
+                }
+            ),
             HTTPStatus.NOT_FOUND,
         )
 
     if not any(row.get("owner_token") == api_token for row in tmpl_rows_resp.data):
         return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
+            jsonify(
+                {
+                    "error": "FORBIDDEN",
+                    "message": "You do not have access to this content",
+                }
+            ),
             HTTPStatus.FORBIDDEN,
         )
 
     try:
         # TODO: XML layout here (Olivianne)
         xml = f"""
-            <Invoice>
-                <Template>{template_id}</Template>
-            </Invoice>
-            """.strip()
+			<Invoice>
+					<Template>{template_id}</Template>
+			</Invoice>
+			""".strip()
 
-        created = (
-            supabase.table("api_invoices")
-            .insert(
-                {
-                    "owner_token": api_token,
-                    "template_id": template_id,
-                    "xml": xml,
-                }
-            )
+        created = supabase.table("api_invoices").insert(
+            {
+                "owner_token": api_token,
+                "template_id": template_id,
+                "xml": xml,
+            }
         )
         created_resp = sb_execute(created)
         if created_resp is None or sb_has_error(created_resp):
@@ -129,10 +131,7 @@ def generate_invoice():
 
     except ValueError as e:
         return (
-            jsonify({
-                "error": "BAD_REQUEST",
-                "message": str(e)
-            }),
+            jsonify({"error": "BAD_REQUEST", "message": str(e)}),
             HTTPStatus.BAD_REQUEST,
         )
 
@@ -142,19 +141,17 @@ def generate_invoice():
         status=HTTPStatus.CREATED,
     )
 
+
 # ------------------- GET /v1/invoices  -------------------
 @invoices_bp.route("/v1/invoices", methods=["GET"])
 def list_invoices():
-
+    """List invoices."""
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(api_token):
         return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": UNAUTHORIZED_MESSAGE
-            }),
+            jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,
         )
 
@@ -184,19 +181,17 @@ def list_invoices():
         HTTPStatus.OK,
     )
 
+
 # ------------------- GET /v1/invoices/<int:invoiceID> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["GET"])
 def get_invoice(invoiceID):
-
+    """Get an invoice."""
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(api_token):
         return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": UNAUTHORIZED_MESSAGE
-            }),
+            jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,
         )
 
@@ -220,10 +215,12 @@ def get_invoice(invoiceID):
 
     if not resp_exec.data:
         return (
-            jsonify({
-                "error": "NOT_FOUND",
-                "message": "The requested resource was not found"
-            }),
+            jsonify(
+                {
+                    "error": "NOT_FOUND",
+                    "message": "The requested resource was not found",
+                }
+            ),
             HTTPStatus.NOT_FOUND,
         )
 
@@ -232,10 +229,12 @@ def get_invoice(invoiceID):
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
         return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
+            jsonify(
+                {
+                    "error": "FORBIDDEN",
+                    "message": "You do not have access to this content",
+                }
+            ),
             HTTPStatus.FORBIDDEN,
         )
 
@@ -245,19 +244,17 @@ def get_invoice(invoiceID):
         status=HTTPStatus.OK,
     )
 
+
 # ------------------- DELETE /v1/invoices/<int:invoiceID> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["DELETE"])
 def delete_invoice(invoiceID):
-
+    """Delete an invoice."""
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(api_token):
         return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": UNAUTHORIZED_MESSAGE
-            }),
+            jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,
         )
 
@@ -281,10 +278,12 @@ def delete_invoice(invoiceID):
 
     if not existing_exec.data:
         return (
-            jsonify({
-                "error": "NOT_FOUND",
-                "message": "The requested resource was not found"
-            }),
+            jsonify(
+                {
+                    "error": "NOT_FOUND",
+                    "message": "The requested resource was not found",
+                }
+            ),
             HTTPStatus.NOT_FOUND,
         )
 
@@ -293,18 +292,18 @@ def delete_invoice(invoiceID):
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
         return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
+            jsonify(
+                {
+                    "error": "FORBIDDEN",
+                    "message": "You do not have access to this content",
+                }
+            ),
             HTTPStatus.FORBIDDEN,
         )
 
     deleted_xml = invoice.get("xml") or ""
 
-    deleted = (
-        supabase.table("api_invoices").delete().eq("id", invoiceID)
-    )
+    deleted = supabase.table("api_invoices").delete().eq("id", invoiceID)
     deleted_exec = sb_execute(deleted)
     if deleted_exec is None or sb_has_error(deleted_exec):
         return (
