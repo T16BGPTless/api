@@ -31,3 +31,31 @@ jobs:
   #       working-directory: ./frontend
   #       run: npm run lint
 
+test-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        working-directory: ./api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pylint
+
+      - name: Run pytest
+        working-directory: ./api
+        run: |
+          PYTHONPATH=. pytest tests/backend -v
+
+      - name: Run pylint
+        working-directory: ./api
+        run: |
+          pylint app
