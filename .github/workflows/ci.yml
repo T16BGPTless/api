@@ -24,9 +24,8 @@ jobs:
         run: pylint "app/**/*.py" --errors-only
 
       - name: Run pytest
-        run: pytest tests/
-        env:
-          PYTHONPATH: .
+        run: |
+          PYTHONPATH=. pytest tests -v
 
   # lint-frontend:
   #   runs-on: ubuntu-latest
