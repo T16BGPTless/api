@@ -75,7 +75,7 @@ def generate_invoice():
                 jsonify(
                     {
                         "error": "INTERNAL_SERVER_ERROR",
-                        "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                        "message": "Database error (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
                     }
                 ),
                 HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -119,7 +119,7 @@ def generate_invoice():
                 jsonify(
                     {
                         "error": "INTERNAL_SERVER_ERROR",
-                        "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                        "message": "Database error (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
                     }
                 ),
                 HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -169,7 +169,7 @@ def list_invoices():
             jsonify(
                 {
                     "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
                 }
             ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -210,7 +210,7 @@ def get_invoice(invoiceID):
             jsonify(
                 {
                     "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
                 }
             ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -271,7 +271,7 @@ def delete_invoice(invoiceID):
             jsonify(
                 {
                     "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
                 }
             ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -309,7 +309,7 @@ def delete_invoice(invoiceID):
             jsonify(
                 {
                     "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                    "message": "Database error (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
                 }
             ),
             HTTPStatus.INTERNAL_SERVER_ERROR,
