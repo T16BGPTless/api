@@ -1,3 +1,7 @@
+"""
+Authorisation methods
+"""
+
 from flask import Blueprint, jsonify, request
 from http import HTTPStatus
 import uuid
@@ -35,8 +39,11 @@ def register():
         return (
             jsonify({
                 "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
-            }),
+                "message": (
+                    "The API token is missing or invalid. "
+                    "If you do not have an API token register for one "
+                    "through the forum on our website"
+                )            }),
             HTTPStatus.UNAUTHORIZED,
         )
 
