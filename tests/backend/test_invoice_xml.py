@@ -80,3 +80,36 @@ def test_missing_invoice_id():
 
     with pytest.raises(ValueError):
         build_invoice_xml(data)
+
+def test_invoices_template():
+    data = {
+        "invoiceID": "456",
+        "issueDate": "2026-02-01",
+        "dueDate": "2026-02-02",
+        "currency": "AUD",
+        "totalAmount": 5,
+        "supplier": {
+            "name": "template supplier",
+            "ABN": "111"
+        },
+        "customer": {
+            "name": "template customer",
+            "ABN": "222"
+        },
+        "lines": [
+            {
+                "lineId": "1",
+                "description": "template item",
+                "quantity": 1,
+                "unitPrice": 5,
+                "lineTotal": 5
+            }
+        ]
+    }
+
+    xml = build_invoice_xml(data)
+
+    assert "<cbc:ID>456</cbc:ID>" in xml
+    assert "template supplier" in xml
+    assert "template customer" in xml
+    assert "template item" in xml

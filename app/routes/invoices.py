@@ -56,47 +56,48 @@ def generate_invoice():
     template_id = body.get("templateInvoice")
     invoice_data = body.get("InvoiceData")
 
-    if not template_id:
+    if invoice_data is None:
         return (
-            jsonify({"error": "BAD_REQUEST", "message": "templateInvoice is required"}),
+            jsonify({"error": "BAD_REQUEST", "message": "InvoiceData is required"}),
             HTTPStatus.BAD_REQUEST,
         )
 
     # Check template exists (404) and permission (403)
-    tmpl_rows = (
-        supabase.table("api_templates")
-        .select("owner_token")
-        .eq("template_id", template_id)
-    )
-    tmpl_rows_resp = _sb_execute(tmpl_rows)
-    if tmpl_rows_resp is None or _sb_has_error(tmpl_rows_resp):
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
+    if template_id:
+        tmpl_rows = (
+            supabase.table("api_templates")
+            .select("owner_token")
+            .eq("template_id", template_id)
         )
+        tmpl_rows_resp = _sb_execute(tmpl_rows)
+        if tmpl_rows_resp is None or _sb_has_error(tmpl_rows_resp):
+            return (
+                jsonify(
+                    {
+                        "error": "INTERNAL_SERVER_ERROR",
+                        "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
+                    }
+                ),
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
-    if not tmpl_rows_resp.data:
-        return (
-            jsonify({
-                "error": "NOT_FOUND",
-                "message": "The requested resource was not found"
-            }),
-            HTTPStatus.NOT_FOUND,
-        )
+        if not tmpl_rows_resp.data:
+            return (
+                jsonify({
+                    "error": "NOT_FOUND",
+                    "message": "The requested resource was not found"
+                }),
+                HTTPStatus.NOT_FOUND,
+            )
 
-    if not any(row.get("owner_token") == api_token for row in tmpl_rows_resp.data):
-        return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
-            HTTPStatus.FORBIDDEN,
-        )
+        if not any(row.get("owner_token") == api_token for row in tmpl_rows_resp.data):
+            return (
+                jsonify({
+                    "error": "FORBIDDEN",
+                    "message": "You do not have access to this content"
+                }),
+                HTTPStatus.FORBIDDEN,
+            )
 
     try:
         # TODO: XML layout here (Olivianne)
