@@ -22,7 +22,7 @@ jobs:
         run: python -m pip install --upgrade pip && pip install -r requirements.txt
 
       - name: Run pylint
-        run: pylint app
+        run: pylint "app/**/*.py"
 
       - name: Run pytest
         run: pytest tests/
