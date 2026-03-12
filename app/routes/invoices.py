@@ -5,8 +5,6 @@ from flask import Blueprint, jsonify, request, Response
 from db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
 
-supabase = get_supabase()
-
 invoices_bp = Blueprint("invoices", __name__)
 
 UNAUTHORIZED_MESSAGE = "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
@@ -25,7 +23,15 @@ def sb_execute(builder):
         return None
 
 
-def is_valid_api_token(api_token: str) -> bool:
+def get_db():
+    """Get a Supabase client, or None if misconfigured."""
+    try:
+        return get_supabase()
+    except ValueError:
+        return None
+
+
+def is_valid_api_token(supabase, api_token: str) -> bool:
     """Check if the API token is valid."""
     builder = (
         supabase.table("api_groups")
@@ -43,10 +49,21 @@ def is_valid_api_token(api_token: str) -> bool:
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
 def generate_invoice():
     """Generate an invoice."""
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(supabase, api_token):
         return (
             jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,
@@ -146,10 +163,21 @@ def generate_invoice():
 @invoices_bp.route("/v1/invoices", methods=["GET"])
 def list_invoices():
     """List invoices."""
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(supabase, api_token):
         return (
             jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,
@@ -186,10 +214,21 @@ def list_invoices():
 @invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["GET"])
 def get_invoice(invoiceID):
     """Get an invoice."""
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(supabase, api_token):
         return (
             jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,
@@ -249,10 +288,21 @@ def get_invoice(invoiceID):
 @invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["DELETE"])
 def delete_invoice(invoiceID):
     """Delete an invoice."""
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
-    if not api_token or not is_valid_api_token(api_token):
+    if not api_token or not is_valid_api_token(supabase, api_token):
         return (
             jsonify({"error": "UNAUTHORIZED", "message": UNAUTHORIZED_MESSAGE}),
             HTTPStatus.UNAUTHORIZED,

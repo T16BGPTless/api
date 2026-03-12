@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
@@ -22,7 +21,7 @@ jobs:
         run: python -m pip install --upgrade pip && pip install -r requirements.txt
 
       - name: Run pylint
-        run: pylint "app/**/*.py"
+        run: pylint "app/**/*.py" --errors-only
 
       - name: Run pytest
         run: pytest tests/

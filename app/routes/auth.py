@@ -6,8 +6,6 @@ from flask import Blueprint, jsonify, request
 from db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
 
-supabase = get_supabase()
-
 auth_bp = Blueprint("auth", __name__)
 
 # Valid developer tokens
@@ -27,10 +25,29 @@ def sb_execute(builder):
         return None
 
 
+def get_db():
+    """Get a Supabase client, or None if misconfigured."""
+    try:
+        return get_supabase()
+    except ValueError:
+        return None
+
+
 # ------------------- POST /v1/auth/register -------------------
 @auth_bp.route("/v1/auth/register", methods=["POST"])
 def register():
     """Register a new group."""
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
