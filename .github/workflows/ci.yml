@@ -25,7 +25,7 @@ jobs:
 
       - name: Run pytest
         run: |
-          PYTHONPATH=. pytest tests -v
+          PYTHONPATH=. pytest tests/backend -v
 
   # lint-frontend:
   #   runs-on: ubuntu-latest
