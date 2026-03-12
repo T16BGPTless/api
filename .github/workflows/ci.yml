@@ -50,11 +50,9 @@ jobs:
           pip install pytest pylint
 
       - name: Run pytest
-        working-directory: ./api
         run: |
           PYTHONPATH=. pytest tests/backend -v
 
       - name: Run pylint
-        working-directory: ./api
         run: |
           pylint app
