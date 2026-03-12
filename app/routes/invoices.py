@@ -2,7 +2,7 @@
 
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, Response
-from db.supabase_client import get_supabase
+from app.db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
 
 invoices_bp = Blueprint("invoices", __name__)

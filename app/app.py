@@ -1,13 +1,8 @@
 """Main application file."""
 
-import sys
-import os
 from flask import Flask
-from routes.invoices import invoices_bp
-from routes.auth import auth_bp
-
-# Add the directory containing this file to the Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from app.routes.invoices import invoices_bp
+from app.routes.auth import auth_bp
 
 app = Flask(__name__)
 

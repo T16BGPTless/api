@@ -1,36 +1,31 @@
-"""Supabase tests."""
-import os
+"""Supabase integration tests."""
+
 from pathlib import Path
 import sys
 import uuid
-from app.db.supabase_client import get_supabase
+
 import pytest
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
-def supabase_env_present() -> bool:
-    """Check if the Supabase env is present."""
-    return bool(os.getenv("SUPABASE_URL")) and bool(
-        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    )
-
-
 @pytest.fixture()
 def sb():
     """Get the Supabase client."""
-    if not supabase_env_present():
-        pytest.skip("Supabase env not set (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)")
-    else:
+    from app.db.supabase_client import get_supabase
+
+    try:
         return get_supabase()
+    except ValueError:
+        pytest.skip(
+            "Supabase not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)"
+        )
 
 
 @pytest.fixture()
 def flask_client():
     """Get the Flask client."""
-    if not supabase_env_present():
-        pytest.skip("Supabase env not set (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)")
     from app.app import app
 
     app.config.update(TESTING=True)
