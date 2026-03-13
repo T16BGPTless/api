@@ -14,7 +14,7 @@ VALID_DEV_TOKENS = {"dev-secret"}
 
 # ------------------- POST /v1/auth/register -------------------
 @auth_bp.route("/v1/auth/register", methods=["POST"])
-def register():
+def register(): # pylint: disable=too-many-return-statements
     """Register a new group."""
 
     supabase = get_db()
@@ -64,7 +64,7 @@ def register():
 
 # ------------------- PUT /v1/auth/reset -------------------
 @auth_bp.route("/v1/auth/reset", methods=["PUT"])
-def reset():
+def reset(): # pylint: disable=too-many-return-statements
     """Reset the API token for a group."""
 
     supabase = get_db()
@@ -117,7 +117,7 @@ def reset():
 
 # ------------------- delete /v1/auth/revoke -------------------
 @auth_bp.route("/v1/auth/revoke", methods=["DELETE"])
-def revoke():
+def revoke(): # pylint: disable=too-many-return-statements
     """Revoke the API token for a group."""
 
     supabase = get_db()
