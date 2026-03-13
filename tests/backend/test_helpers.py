@@ -65,3 +65,36 @@ def test_sb_execute_api_error():
     mock_builder = MagicMock()
     mock_builder.execute.side_effect = APIError({"message": "Supabase Timeout"})
     assert sb_execute(mock_builder) is None
+
+
+# -------------------------- get_db --------------------------
+
+def test_get_db_success():
+    with patch("app.routes.helpers.get_supabase", return_value="client"):
+        assert get_db() == "client"
+
+def test_get_db_value_error():
+    """Should catch ValueError and return None."""
+    with patch("app.routes.helpers.get_supabase", side_effect=ValueError):
+        assert get_db() is None
+
+# -------------------------- return_error --------------------------
+
+@pytest.mark.parametrize("error_key, expected_status", [
+    ("INTERNAL_SERVER_ERROR", HTTPStatus.INTERNAL_SERVER_ERROR),
+    ("UNAUTHORIZED", HTTPStatus.UNAUTHORIZED),
+    ("FORBIDDEN", HTTPStatus.FORBIDDEN),
+    ("NOT_FOUND", HTTPStatus.NOT_FOUND),
+    ("GROUP_NOT_FOUND", HTTPStatus.NOT_FOUND),
+    ("GROUP_ALREADY_REGISTERED", HTTPStatus.CONFLICT),
+    ("GROUP_NAME_REQUIRED", HTTPStatus.BAD_REQUEST),
+    ("UNKNOWN", HTTPStatus.INTERNAL_SERVER_ERROR), 
+])
+
+def test_return_error(error_key, expected_status):
+    """Verifies every branch of the error handler."""
+    with app.app_context():
+        response, status = return_error(error_key)
+        assert status == expected_status
+        assert response.json["error"] == error_key
+        
