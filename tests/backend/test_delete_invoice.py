@@ -1,12 +1,14 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from app.app import app
 from http import HTTPStatus
+from flask import Response
 
 # --------------------------------- FIXTURE --------------------------------- 
 # Creates a mock of a server
 @pytest.fixture
 def client():
+    """Fixture to provide a test client for the Flask app."""
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
@@ -14,81 +16,97 @@ def client():
 # ------------------------------ MOCK SUPABASE ------------------------------ 
 # Creates a mock of a database
 class MockResponse:
-    def __init__(self, data, error=None):
-        self.data = data
+    """Helper class to simulate Supabase response objects."""
+    def __init__(self, data=None, error=None):
+        self.data = data or []
         self.error = error
 
-# ------------------------------- TEST CASES --------------------------------
 # ------------------------------- TEST CASES --------------------------------
 
 # CASE 1: SUCCESS (200 OK)
 def test_delete_invoice_success(client):
-    """Everything is correct: user owns the invoice, so it gets deleted."""
-    # 1. First DB response: The 'select' call to find the owner
-    existing_data = MockResponse(data=[{"owner_token": "token123", "xml": "<invoice/>"}])
-    # 2. Second DB response: The 'delete' call itself
-    delete_result = MockResponse(data=[]) 
+    """Everything is correct: finds invoice, matches owner, and soft-deletes."""
+    mock_xml = "<Invoice><ID>777</ID></Invoice>"
+    # 1. First call: Finding the existing invoice
+    mock_existing = MockResponse(data=[{
+        "owner_token": "my-token", 
+        "xml": mock_xml,
+        "deleted": False 
+    }])
+    # 2. Second call: The update operation success
+    mock_update = MockResponse(data=[{"id": 777, "deleted": True}])
+    
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", side_effect=[mock_existing, mock_update]), \
+         patch("app.routes.invoices.sb_has_error", return_value=False):
+        
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "my-token"})
+        
+        assert response.status_code == HTTPStatus.OK
+        assert b"<ID>777</ID>" in response.data
+        assert response.mimetype == "application/xml"
 
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute") as mock_exec:
-            # side_effect feeds the results in the order the code calls them
-            mock_exec.side_effect = [existing_data, delete_result]
-            
-            response = client.delete("/v1/invoices/1", headers={"APItoken": "token123"})
-            
-            assert response.status_code == HTTPStatus.OK
-            assert response.data == b"<invoice/>"
+# CASE 2: NOT FOUND - ALREADY DELETED (404)
+def test_delete_invoice_already_deleted(client):
+    """The invoice exists but 'deleted' is already True."""
+    mock_existing = MockResponse(data=[{
+        "owner_token": "my-token", 
+        "deleted": True 
+    }])
+    
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_existing), \
+         patch("app.routes.invoices.sb_has_error", return_value=False):
+        
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "my-token"})
+        assert response.status_code == HTTPStatus.NOT_FOUND
 
-# CASE 2: MISSING HEADER (401)
-def test_delete_invoice_no_header(client):
-    """User forgot to provide the APItoken header."""
-    response = client.delete("/v1/invoices/1")
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
+# CASE 3: FORBIDDEN - WRONG OWNER (403)
+def test_delete_invoice_wrong_owner(client):
+    """User tries to delete someone else's invoice."""
+    mock_existing = MockResponse(data=[{
+        "owner_token": "someone-else", 
+        "deleted": False 
+    }])
+    
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_existing), \
+         patch("app.routes.invoices.sb_has_error", return_value=False):
+        
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "my-token"})
+        assert response.status_code == HTTPStatus.FORBIDDEN
 
-# CASE 3: INVALID TOKEN (401)
-def test_delete_invoice_bad_token(client):
-    """Token provided doesn't exist in our records."""
-    with patch("app.routes.invoices._is_valid_api_token", return_value=False):
-        response = client.delete("/v1/invoices/1", headers={"APItoken": "fake-token"})
+# CASE 4: UNAUTHORIZED (401)
+def test_delete_invoice_unauthorized(client):
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=False):
+        
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "bad-token"})
         assert response.status_code == HTTPStatus.UNAUTHORIZED
 
-# CASE 4: DATABASE ERROR ON FIND (500)
-def test_delete_invoice_db_error_on_find(client):
-    """The database fails while trying to look up the invoice."""
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute", return_value=None):
-            response = client.delete("/v1/invoices/1", headers={"APItoken": "token123"})
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-
-# CASE 5: NOT FOUND (404)
+# CASE 5: NOT FOUND - DOES NOT EXIST (404)
 def test_delete_invoice_not_found(client):
-    """User tried to delete an ID that doesn't exist."""
+    """Database returns an empty list for that ID."""
     mock_empty = MockResponse(data=[])
-    
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute", return_value=mock_empty):
-            response = client.delete("/v1/invoices/999", headers={"APItoken": "token123"})
-            assert response.status_code == HTTPStatus.NOT_FOUND
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_empty), \
+         patch("app.routes.invoices.sb_has_error", return_value=False):
+        
+        response = client.delete("/v1/invoices/999", headers={"APItoken": "token"})
+        assert response.status_code == HTTPStatus.NOT_FOUND
 
-# CASE 6: FORBIDDEN (403)
-def test_delete_invoice_wrong_owner(client):
-    """Invoice exists, but belongs to someone else."""
-    mock_other_owner = MockResponse(data=[{"owner_token": "someone-else", "xml": "<secret/>"}])
+# CASE 6: UPDATE FAILURE (500)
+def test_delete_invoice_update_error(client):
+    """First DB call works, but the second call (the update) fails."""
+    mock_existing = MockResponse(data=[{"owner_token": "token", "deleted": False}])
     
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute", return_value=mock_other_owner):
-            response = client.delete("/v1/invoices/1", headers={"APItoken": "my-token"})
-            assert response.status_code == HTTPStatus.FORBIDDEN
-
-# CASE 7: DATABASE ERROR ON DELETE (500)
-def test_delete_invoice_db_error_on_delete(client):
-    """Lookup worked, but the database crashed during the actual deletion."""
-    existing_data = MockResponse(data=[{"owner_token": "token123", "xml": "<old/>"}])
-    
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute") as mock_exec:
-            # First call succeeds, second call fails
-            mock_exec.side_effect = [existing_data, None]
-            
-            response = client.delete("/v1/invoices/1", headers={"APItoken": "token123"})
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", side_effect=[mock_existing, None]):
+        
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
