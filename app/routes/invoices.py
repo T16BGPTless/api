@@ -176,8 +176,8 @@ def delete_invoice(invoice_id): # pylint: disable=too-many-return-statements
     supabase = get_db()
 
     if supabase is None:
-        return_error("INTERNAL_SERVER_ERROR")
-        
+        return return_error("INTERNAL_SERVER_ERROR")
+
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
