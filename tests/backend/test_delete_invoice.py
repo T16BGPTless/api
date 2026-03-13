@@ -121,7 +121,6 @@ def test_delete_invoice_db_connection_fail(client):
 # CASE 8: INITIAL QUERY EXECUTION FAILURE (500)
 def test_delete_invoice_initial_query_error(client):
     """The first call to find the invoice (select) fails."""
-    # This hits: if existing_exec is None or sb_has_error(existing_exec)
     with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
          patch("app.routes.invoices.is_valid_api_token", return_value=True), \
          patch("app.routes.invoices.sb_execute", return_value=None):

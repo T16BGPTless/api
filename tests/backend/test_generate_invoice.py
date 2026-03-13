@@ -139,7 +139,6 @@ def test_generate_invoice_db_connection_fail(client):
 # CASE 9: TEMPLATE LOOKUP EXECUTION FAILURE (500)
 def test_generate_invoice_template_lookup_error(client):
     """The query to check if the template exists fails (sb_execute returns None)."""
-    # This specifically hits the line: if tmpl_rows_resp is None
     payload = {"templateInvoice": "T123"}
     
     with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
@@ -154,7 +153,6 @@ def test_generate_invoice_template_lookup_error(client):
 # CASE 10: TEMPLATE LOOKUP SUPABASE ERROR (500)
 def test_generate_invoice_template_supabase_error(client):
     """The template lookup runs but Supabase returns an error flag."""
-    # This hits the line: or sb_has_error(tmpl_rows_resp)
     mock_err = MockResponse(error="Database Error")
     payload = {"templateInvoice": "T123"}
     
