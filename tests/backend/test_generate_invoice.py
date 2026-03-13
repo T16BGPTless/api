@@ -126,3 +126,44 @@ def test_generate_invoice_insert_fail(client):
                                json={"templateInvoice": "T1"}, 
                                headers={"APItoken": "token"})
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+# CASE 8: DATABASE INITIALIZATION FAILURE (500)
+def test_generate_invoice_db_connection_fail(client):
+    """Scenario where get_db() returns None at the start of generation."""
+    with patch("app.routes.invoices.get_db", return_value=None):
+        response = client.post("/v1/invoices/generate", 
+                               json={"templateInvoice": "T1"}, 
+                               headers={"APItoken": "valid-token"})
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+# CASE 9: TEMPLATE LOOKUP EXECUTION FAILURE (500)
+def test_generate_invoice_template_lookup_error(client):
+    """The query to check if the template exists fails (sb_execute returns None)."""
+    # This specifically hits the line: if tmpl_rows_resp is None
+    payload = {"templateInvoice": "T123"}
+    
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=None):
+        
+        response = client.post("/v1/invoices/generate", 
+                               json=payload, 
+                               headers={"APItoken": "valid-token"})
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+# CASE 10: TEMPLATE LOOKUP SUPABASE ERROR (500)
+def test_generate_invoice_template_supabase_error(client):
+    """The template lookup runs but Supabase returns an error flag."""
+    # This hits the line: or sb_has_error(tmpl_rows_resp)
+    mock_err = MockResponse(error="Database Error")
+    payload = {"templateInvoice": "T123"}
+    
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_err), \
+         patch("app.routes.invoices.sb_has_error", return_value=True):
+        
+        response = client.post("/v1/invoices/generate", 
+                               json=payload, 
+                               headers={"APItoken": "valid-token"})
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR

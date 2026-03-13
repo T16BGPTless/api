@@ -110,3 +110,33 @@ def test_delete_invoice_update_error(client):
         
         response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+# CASE 7: DATABASE CONNECTION FAILURE (500)
+def test_delete_invoice_db_connection_fail(client):
+    """Scenario where get_db() returns None at the start of deletion."""
+    with patch("app.routes.invoices.get_db", return_value=None):
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+# CASE 8: INITIAL QUERY EXECUTION FAILURE (500)
+def test_delete_invoice_initial_query_error(client):
+    """The first call to find the invoice (select) fails."""
+    # This hits: if existing_exec is None or sb_has_error(existing_exec)
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=None):
+        
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+# CASE 9: INITIAL QUERY SUPABASE ERROR (500)
+def test_delete_invoice_initial_supabase_error(client):
+    """The select query runs but Supabase returns an error flag."""
+    mock_err = MockResponse(error="Database select failed")
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_err), \
+         patch("app.routes.invoices.sb_has_error", return_value=True):
+        
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
