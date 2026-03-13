@@ -53,3 +53,15 @@ def test_sb_has_error():
     assert sb_has_error(MockResponse(data=[])) is False
     assert sb_has_error(None) is False 
 
+# -------------------------- sb_execute --------------------------
+
+def test_sb_execute_success():
+    mock_builder = MagicMock()
+    mock_builder.execute.return_value = "Success"
+    assert sb_execute(mock_builder) == "Success"
+
+def test_sb_execute_api_error():
+    """Should catch APIError and return None."""
+    mock_builder = MagicMock()
+    mock_builder.execute.side_effect = APIError({"message": "Supabase Timeout"})
+    assert sb_execute(mock_builder) is None
