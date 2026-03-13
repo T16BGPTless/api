@@ -1,4 +1,5 @@
 """Test the invoice XML builder."""
+
 import pytest
 from app.services.invoice_xml import build_invoice_xml
 

@@ -7,6 +7,7 @@ from app.routes.helpers import sb_has_error, sb_execute, get_db, return_error
 
 invoices_bp = Blueprint("invoices", __name__)
 
+
 def is_valid_api_token(supabase, api_token: str) -> bool:
     """Check if the API token is valid."""
     builder = (
@@ -105,11 +106,12 @@ def list_invoices():
     if not api_token or not is_valid_api_token(supabase, api_token):
         return return_error("UNAUTHORIZED")
 
-    # Get invoices owned by this API token
+    # Get invoices owned by this API token, not deleted
     resp = (
         supabase.table("api_invoices")
         .select("id")
         .eq("owner_token", api_token)
+        .eq("deleted", False)
         .order("id", desc=False)
     )
     resp_exec = sb_execute(resp)
@@ -124,8 +126,8 @@ def list_invoices():
     )
 
 
-# ------------------- GET /v1/invoices/<int:invoiceID> -------------------
-@invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["GET"])
+# ------------------- GET /v1/invoices/<int:invoice_id> -------------------
+@invoices_bp.route("/v1/invoices/<int:invoice_id>", methods=["GET"])
 def get_invoice(invoice_id):
     """Get an invoice."""
     supabase = get_db()
@@ -139,7 +141,7 @@ def get_invoice(invoice_id):
 
     resp = (
         supabase.table("api_invoices")
-        .select("owner_token, xml")
+        .select("owner_token, xml, deleted")
         .eq("id", invoice_id)
         .limit(1)
     )
@@ -152,6 +154,10 @@ def get_invoice(invoice_id):
 
     invoice = resp_exec.data[0]
 
+    # Treat soft-deleted invoices as not found
+    if invoice.get("deleted"):
+        return return_error("NOT_FOUND")
+
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
         return return_error("FORBIDDEN")
@@ -163,10 +169,10 @@ def get_invoice(invoice_id):
     )
 
 
-# ------------------- DELETE /v1/invoices/<int:invoiceID> -------------------
-@invoices_bp.route("/v1/invoices/<int:invoiceID>", methods=["DELETE"])
+# ------------------- DELETE /v1/invoices/<int:invoice_id> -------------------
+@invoices_bp.route("/v1/invoices/<int:invoice_id>", methods=["DELETE"])
 def delete_invoice(invoice_id):
-    """Delete an invoice."""
+    """Soft-delete an invoice (flag as deleted)."""
     supabase = get_db()
     if supabase is None:
         return_error("INTERNAL_SERVER_ERROR")
@@ -178,7 +184,7 @@ def delete_invoice(invoice_id):
 
     existing = (
         supabase.table("api_invoices")
-        .select("owner_token, xml")
+        .select("owner_token, xml, deleted")
         .eq("id", invoice_id)
         .limit(1)
     )
@@ -191,13 +197,20 @@ def delete_invoice(invoice_id):
 
     invoice = existing_exec.data[0]
 
+    # Treat already-deleted invoices as not found
+    if invoice.get("deleted"):
+        return return_error("NOT_FOUND")
+
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
         return return_error("FORBIDDEN")
 
     deleted_xml = invoice.get("xml") or ""
 
-    deleted = supabase.table("api_invoices").delete().eq("id", invoice_id)
+    # Soft-delete: mark the row as deleted instead of removing it
+    deleted = (
+        supabase.table("api_invoices").update({"deleted": True}).eq("id", invoice_id)
+    )
     deleted_exec = sb_execute(deleted)
     if deleted_exec is None or sb_has_error(deleted_exec):
         return return_error("INTERNAL_SERVER_ERROR")

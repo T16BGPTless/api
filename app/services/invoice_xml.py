@@ -1,3 +1,5 @@
+"""Invoice XML builder."""
+
 import xml.etree.ElementTree as element_tree
 from decimal import Decimal, InvalidOperation
 
@@ -100,6 +102,7 @@ def _build_line(parent, line: dict, currency: str):
 
 # builds the whole invoice and returns it as an XML string
 def build_invoice_xml(data: dict) -> str:
+    """Build the invoice XML."""
     if not isinstance(data, dict):
         raise ValueError("Invoice data must be an object")
 
