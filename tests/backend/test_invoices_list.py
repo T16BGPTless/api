@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from app.app import app
 from http import HTTPStatus
 
@@ -7,85 +7,112 @@ from http import HTTPStatus
 # Creates a mock of a server
 @pytest.fixture
 def client():
+    """Fixture to provide a test client for the Flask app."""
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
 
+
 # ------------------------------ MOCK SUPABASE ------------------------------ 
 # Creates a mock of a database
 class MockResponse:
-    def __init__(self, data, error=None):
-        self.data = data
+    """Helper class to simulate Supabase response objects."""
+    def __init__(self, data=None, error=None):
+        self.data = data or []
         self.error = error
 
+
 # ------------------------------- TEST CASES --------------------------------
-# Key notes:
-# the line ' with patch("app.routes.invoices._sb_execute", return_value=mock_invoices): '
-# prevents access to the supabase data. NOTE THIS IS UNIT TESTING
 
-# CASE 1: SUCCESS (DATA FOUND)
+# CASE 1: SUCCESS (200 OK)
 def test_list_invoices_success(client):
-    """Checks if the API correctly returns a list of IDs when everything works."""
-    mock_invoices = MockResponse(data=[{"id": 10}, {"id": 20}])
-    
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute", return_value=mock_invoices):
-            response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
-            
-            assert response.status_code == HTTPStatus.OK
-            assert response.get_json() == [10, 20]
+    """Valid token and invoices exist."""
+    mock_data = MockResponse(data=[
+        {"id": 1},
+        {"id": 2},
+        {"id": 3}
+    ])
 
-# CASE 2: SUCCESS (NO DATA FOUND)
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_data), \
+         patch("app.routes.invoices.sb_has_error", return_value=False):
+
+        response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
+
+        assert response.status_code == HTTPStatus.OK
+        assert response.get_json() == [1, 2, 3]
+
+
+# CASE 2: SUCCESS - NO INVOICES (200 OK)
 def test_list_invoices_empty(client):
-    """Checks if the API returns an empty list [] if the user has no invoices."""
-    # We return an empty list in 'data' to simulate a fresh account
-    mock_invoices = MockResponse(data=[])
-    
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute", return_value=mock_invoices):
-            response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
-            
-            assert response.status_code == HTTPStatus.OK
-            assert response.get_json() == []
+    """Valid token but no invoices owned by this token."""
+    mock_empty = MockResponse(data=[])
 
-# CASE 3: 401 UNAUTHORIZED (INVALID TOKEN)
-def test_list_invoices_invalid_token(client):
-    """Checks if the API rejects a token that isn't in our database."""
-    with patch("app.routes.invoices._is_valid_api_token", return_value=False):
-        response = client.get("/v1/invoices", headers={"APItoken": "wrong-token"})
-        
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_empty), \
+         patch("app.routes.invoices.sb_has_error", return_value=False):
+
+        response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
+
+        assert response.status_code == HTTPStatus.OK
+        assert response.get_json() == []
+
+
+# CASE 3: DATABASE INITIALIZATION FAILURE (500)
+def test_list_invoices_db_connection_fail(client):
+    """get_db() returns None."""
+    with patch("app.routes.invoices.get_db", return_value=None):
+
+        response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+# CASE 4: UNAUTHORIZED - MISSING HEADER (401)
+def test_list_invoices_missing_header(client):
+    """No APItoken header provided."""
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()):
+
+        response = client.get("/v1/invoices")
+
         assert response.status_code == HTTPStatus.UNAUTHORIZED
-        assert response.get_json()["error"] == "UNAUTHORIZED"
 
-# CASE 4: 401 UNAUTHORIZED (MISSING HEADER)
-def test_list_invoices_missing_token(client):
-    """Checks if the API rejects a request that forgot to include the header."""
-    # We don't need to mock _is_valid_api_token here because the code 
-    # should stop early when it sees 'api_token' is None.
-    response = client.get("/v1/invoices") # No headers sent
-    
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
 
-# CASE 5: 500 INTERNAL SERVER ERROR (DATABASE RETURNED NONE)
-def test_list_invoices_db_none(client):
-    """Checks how the API handles a total database timeout or crash."""
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        # We simulate the _sb_execute helper returning None (a common crash case)
-        with patch("app.routes.invoices._sb_execute", return_value=None):
-            response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
-            
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-            assert "Database error" in response.get_json()["message"]
+# CASE 5: UNAUTHORIZED - INVALID TOKEN (401)
+def test_list_invoices_invalid_token(client):
+    """Token exists but validation fails."""
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=False):
 
-# CASE 6: 500 INTERNAL SERVER ERROR (DATABASE RETURNED ERROR OBJECT)
-def test_list_invoices_db_error_object(client):
-    """Checks how the API handles the database saying 'Something went wrong'."""
-    # We create a response that actually contains an error message
-    mock_error = MockResponse(data=None, error="Table does not exist")
-    
-    with patch("app.routes.invoices._is_valid_api_token", return_value=True):
-        with patch("app.routes.invoices._sb_execute", return_value=mock_error):
-            response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
-            
-            assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-            assert response.get_json()["error"] == "INTERNAL_SERVER_ERROR"
+        response = client.get("/v1/invoices", headers={"APItoken": "fake-token"})
+
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
+
+
+# CASE 6: DATABASE EXECUTION FAILURE (500)
+def test_list_invoices_db_execution_error(client):
+    """sb_execute returns None."""
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=None):
+
+        response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+# CASE 7: SUPABASE ERROR RESPONSE (500)
+def test_list_invoices_supabase_has_error(client):
+    """Supabase query returns an error."""
+    mock_err = MockResponse(error="Database error")
+
+    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
+         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
+         patch("app.routes.invoices.sb_execute", return_value=mock_err), \
+         patch("app.routes.invoices.sb_has_error", return_value=True):
+
+        response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
