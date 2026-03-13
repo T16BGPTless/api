@@ -46,3 +46,10 @@ def test_is_valid_api_token_db_error():
     with patch("app.routes.invoices.sb_execute", return_value=None):
         assert is_valid_api_token(mock_supabase, "token") is False
 
+# -------------------------- sb_has_error --------------------------
+
+def test_sb_has_error():
+    assert sb_has_error(MockResponse(error="Some Error")) is True
+    assert sb_has_error(MockResponse(data=[])) is False
+    assert sb_has_error(None) is False 
+
