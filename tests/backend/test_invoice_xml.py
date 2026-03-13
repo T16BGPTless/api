@@ -1,8 +1,10 @@
+"""Test the invoice XML builder."""
 import pytest
 from app.services.invoice_xml import build_invoice_xml
 
 
 def test_build_invoice_xml_success():
+    """Test the invoice XML builder success."""
     data = {
         "invoiceID": "123",
         "issueDate": "2026-01-01",
@@ -30,6 +32,7 @@ def test_build_invoice_xml_success():
 
 
 def test_total_must_match_lines():
+    """Test the invoice XML builder total must match lines."""
     data = {
         "invoiceID": "123",
         "issueDate": "2026-01-01",
@@ -54,6 +57,7 @@ def test_total_must_match_lines():
 
 
 def test_missing_invoice_id():
+    """Test the invoice XML builder missing invoice ID."""
     data = {
         "issueDate": "2026-01-01",
         "dueDate": "2026-01-02",
@@ -77,6 +81,7 @@ def test_missing_invoice_id():
 
 
 def test_invoices_template():
+    """Test the invoice XML builder invoices template."""
     data = {
         "invoiceID": "456",
         "issueDate": "2026-02-01",
