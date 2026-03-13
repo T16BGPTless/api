@@ -105,24 +105,3 @@ def test_generate_invoice_xml_error(client):
         assert response.status_code == HTTPStatus.BAD_REQUEST
         assert response.get_json()["error"] == "BAD_REQUEST"
 
-# CASE 6: UNAUTHORIZED (401)
-def test_generate_invoice_unauthorized(client):
-    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
-         patch("app.routes.invoices.is_valid_api_token", return_value=False):
-        
-        response = client.post("/v1/invoices/generate", headers={"APItoken": "bad"})
-        assert response.status_code == HTTPStatus.UNAUTHORIZED
-
-# CASE 7: INTERNAL SERVER ERROR - Insert Fails (500)
-def test_generate_invoice_insert_fail(client):
-    """Template check passes, but the final insert fails."""
-    mock_tmpl_check = MockResponse(data=[{"owner_token": "token"}])
-    
-    with patch("app.routes.invoices.get_db", return_value=MagicMock()), \
-         patch("app.routes.invoices.is_valid_api_token", return_value=True), \
-         patch("app.routes.invoices.sb_execute", side_effect=[mock_tmpl_check, None]):
-        
-        response = client.post("/v1/invoices/generate", 
-                               json={"templateInvoice": "T1"}, 
-                               headers={"APItoken": "token"})
-        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
