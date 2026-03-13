@@ -1,4 +1,6 @@
-"""Supabase client and env loading for the API."""
+"""
+Supabase client configuration
+"""
 
 import os
 from pathlib import Path
