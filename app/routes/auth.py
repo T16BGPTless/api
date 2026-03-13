@@ -8,14 +8,9 @@ import uuid
 from app.db.supabase_client import get_supabase
 from postgrest.exceptions import APIError
 
-supabase = get_supabase()
-
 auth_bp = Blueprint("auth", __name__)
 
-# Example of storage (might be modified later when it comes to persistence)
 VALID_DEV_TOKENS = {"dev-secret"}
-
-# Store registered groups and their tokens
 
 
 def sb_has_error(resp) -> bool:
@@ -30,10 +25,30 @@ def sb_execute(builder):
     except APIError:
         return None
 
+
+def get_db():
+    """Get a Supabase client, or None if misconfigured."""
+    try:
+        return get_supabase()
+    except ValueError:
+        return None
+
 # ------------------- POST /v1/auth/register -------------------
 @auth_bp.route("/v1/auth/register", methods=["POST"])
 def register():
-    """Register a new group"""
+    """Register a new group."""
+
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
@@ -126,7 +141,19 @@ def register():
 # ------------------- PUT /v1/auth/reset -------------------
 @auth_bp.route("/v1/auth/reset", methods=["PUT"])
 def reset():
-    """Reset the API token for a group"""
+    """Reset the API token for a group."""
+
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
@@ -157,7 +184,7 @@ def reset():
             HTTPStatus.BAD_REQUEST,
         )
 
-    # make sure that the group does exist 
+    # make sure that the group does exist
     existing = (
         supabase.table("api_groups")
         .select("api_token")
@@ -206,17 +233,24 @@ def reset():
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
-    return (
-        jsonify({
-            "APItoken": api_token
-        }),
-        HTTPStatus.OK,
-    )
+    return jsonify({"APItoken": api_token}), HTTPStatus.OK
 
 # ------------------- delete /v1/auth/revoke -------------------
 @auth_bp.route("/v1/auth/revoke", methods=["DELETE"])
 def revoke():
-    """Revoke the API token for a group"""  
+    """Revoke the API token for a group."""
+
+    supabase = get_db()
+    if supabase is None:
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
@@ -250,7 +284,7 @@ def revoke():
             HTTPStatus.BAD_REQUEST,
         )
 
-    # check if the group exists 
+    # check if the group exists
     existing = (
         supabase.table("api_groups")
         .select("api_token")
@@ -280,7 +314,7 @@ def revoke():
             HTTPStatus.NOT_FOUND,
         )
 
-    api_token = existing_resp.data.api_token
+    api_token = existing_resp.data[0].get("api_token")
 
     delete = (
         supabase.table("api_groups")
@@ -299,9 +333,4 @@ def revoke():
             HTTPStatus.INTERNAL_SERVER_ERROR,
         )
 
-    return (
-        jsonify({
-            "APItoken": api_token
-        }),
-        HTTPStatus.OK,
-    )
+    return jsonify({"APItoken": api_token}), HTTPStatus.OK
