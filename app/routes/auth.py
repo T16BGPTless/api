@@ -2,36 +2,15 @@
 Authorisation methods
 """
 
-from flask import Blueprint, jsonify, request
 from http import HTTPStatus
 import uuid
-from app.db.supabase_client import get_supabase
-from postgrest.exceptions import APIError
+from flask import Blueprint, jsonify, request
+from app.routes.helpers import sb_has_error, sb_execute, get_db, return_error
 
 auth_bp = Blueprint("auth", __name__)
 
 VALID_DEV_TOKENS = {"dev-secret"}
 
-
-def sb_has_error(resp) -> bool:
-    """Check if the response has an error."""
-    return getattr(resp, "error", None) is not None
-
-
-def sb_execute(builder):
-    """Execute the builder."""
-    try:
-        return builder.execute()
-    except APIError:
-        return None
-
-
-def get_db():
-    """Get a Supabase client, or None if misconfigured."""
-    try:
-        return get_supabase()
-    except ValueError:
-        return None
 
 # ------------------- POST /v1/auth/register -------------------
 @auth_bp.route("/v1/auth/register", methods=["POST"])
@@ -40,48 +19,22 @@ def register():
 
     supabase = get_db()
     if supabase is None:
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
 
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
     if not dev_token:
-        return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": (
-                    "The API token is missing or invalid. "
-                    "If you do not have an API token register for one "
-                    "through the forum on our website"
-                )            }),
-            HTTPStatus.UNAUTHORIZED,
-        )
+        return_error("UNAUTHORIZED")
 
     if dev_token not in VALID_DEV_TOKENS:
-        return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
-            HTTPStatus.FORBIDDEN,
-        )
+        return_error("FORBIDDEN")
 
     body = request.get_json(silent=True) or {}
     group_name = body.get("groupName")
 
     if not group_name:
-        return (
-            jsonify({"error": "BAD_REQUEST", "message": "groupName is required"}),
-            HTTPStatus.BAD_REQUEST,
-        )
+        return_error("GROUP_NAME_REQUIRED")
 
     # Prevent duplicate registrations by group name
     existing = (
@@ -92,51 +45,22 @@ def register():
     )
     existing_resp = sb_execute(existing)
     if existing_resp is None or sb_has_error(existing_resp):
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
     if existing_resp.data:
-        return (
-            jsonify(
-                {
-                    "error": "CONFLICT",
-                    "message": "groupName already registered",
-                }
-            ),
-            HTTPStatus.CONFLICT,
-        )
+        return_error("GROUP_ALREADY_REGISTERED")
 
     # Generate API token
     api_token = uuid.uuid4().hex
 
-    created = (
-        supabase.table("api_groups")
-        .insert({"group_name": group_name, "api_token": api_token})
+    created = supabase.table("api_groups").insert(
+        {"group_name": group_name, "api_token": api_token}
     )
     created_resp = sb_execute(created)
     if created_resp is None or sb_has_error(created_resp):
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
 
-    return (
-        jsonify({
-            "APItoken": api_token
-        }),
-        HTTPStatus.CREATED,
-    )
+    return jsonify({"APItoken": api_token}), HTTPStatus.CREATED
+
 
 # ------------------- PUT /v1/auth/reset -------------------
 @auth_bp.route("/v1/auth/reset", methods=["PUT"])
@@ -145,44 +69,22 @@ def reset():
 
     supabase = get_db()
     if supabase is None:
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
+
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
     if not dev_token:
-        return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
-            }),
-            HTTPStatus.UNAUTHORIZED,
-        )
+        return_error("UNAUTHORIZED")
 
     if dev_token not in VALID_DEV_TOKENS:
-        return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
-            HTTPStatus.FORBIDDEN,
-        )
+        return_error("FORBIDDEN")
 
     body = request.get_json(silent=True) or {}
     group_name = body.get("groupName")
 
     if not group_name:
-        return (
-            jsonify({"error": "BAD_REQUEST", "message": "groupName is required"}),
-            HTTPStatus.BAD_REQUEST,
-        )
+        return_error("GROUP_NAME_REQUIRED")
 
     # make sure that the group does exist
     existing = (
@@ -193,25 +95,10 @@ def reset():
     )
     existing_resp = sb_execute(existing)
     if existing_resp is None or sb_has_error(existing_resp):
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
+
     if not existing_resp.data:
-        return (
-            jsonify(
-                {
-                    "error": "GROUP_NOT_FOUND",
-                    "message": "groupName not found registered",
-                }
-            ),
-            HTTPStatus.NOT_FOUND,
-        )
+        return_error("GROUP_NOT_FOUND")
 
     # Generate API token
     api_token = uuid.uuid4().hex
@@ -223,17 +110,10 @@ def reset():
     )
     created_resp = sb_execute(update)
     if created_resp is None or sb_has_error(created_resp):
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
 
     return jsonify({"APItoken": api_token}), HTTPStatus.OK
+
 
 # ------------------- delete /v1/auth/revoke -------------------
 @auth_bp.route("/v1/auth/revoke", methods=["DELETE"])
@@ -242,47 +122,21 @@ def revoke():
 
     supabase = get_db()
     if supabase is None:
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database not configured (check SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
     if not dev_token:
-        return (
-            jsonify({
-                "error": "UNAUTHORIZED",
-                "message": "The API token is missing or invalid. If you do not have an API token register for one through the forum on our website"
-            }),
-            HTTPStatus.UNAUTHORIZED,
-        )
+        return_error("UNAUTHORIZED")
 
     if dev_token not in VALID_DEV_TOKENS:
-        return (
-            jsonify({
-                "error": "FORBIDDEN",
-                "message": "You do not have access to this content"
-            }),
-            HTTPStatus.FORBIDDEN,
-        )
+        return_error("FORBIDDEN")
 
     body = request.get_json(silent=True) or {}
     group_name = body.get("groupName")
 
     if not group_name:
-        return (
-            jsonify({
-                "error": "BAD_REQUEST", 
-                "message": "groupName is required"
-            }),
-            HTTPStatus.BAD_REQUEST,
-        )
+        return_error("GROUP_NAME_REQUIRED")
 
     # check if the group exists
     existing = (
@@ -293,26 +147,9 @@ def revoke():
     )
     existing_resp = sb_execute(existing)
     if existing_resp is None or sb_has_error(existing_resp):
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
-        
+        return_error("INTERNAL_SERVER_ERROR")
     if not existing_resp.data:
-        return (
-            jsonify(
-                {
-                    "error": "GROUP_NOT_FOUND",
-                    "message": "groupName not found registered",
-                }
-            ),
-            HTTPStatus.NOT_FOUND,
-        )
+        return_error("GROUP_NOT_FOUND")
 
     api_token = existing_resp.data[0].get("api_token")
 
@@ -323,14 +160,6 @@ def revoke():
     )
     created_resp = sb_execute(delete)
     if created_resp is None or sb_has_error(created_resp):
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_SERVER_ERROR",
-                    "message": "Database error (check SUPABASE_URL/SUPABASE_KEY)",
-                }
-            ),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
+        return_error("INTERNAL_SERVER_ERROR")
 
     return jsonify({"APItoken": api_token}), HTTPStatus.OK

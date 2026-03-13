@@ -3,13 +3,18 @@ from decimal import Decimal, InvalidOperation
 
 # ubl xml namespaces from swagger
 INVOICE_UBL_NS = "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
-INVOICE_CAC_NS = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
-INVOICE_CBC_FIELDS_NS = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+INVOICE_CAC_NS = (
+    "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+)
+INVOICE_CBC_FIELDS_NS = (
+    "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+)
 
-#xml prefixes from swagger aswell
+# xml prefixes from swagger aswell
 element_tree.register_namespace("", INVOICE_UBL_NS)
 element_tree.register_namespace("cac", INVOICE_CAC_NS)
 element_tree.register_namespace("cbc", INVOICE_CBC_FIELDS_NS)
+
 
 # tag name creator!! makes things easier
 def _tag(ns: str, name: str) -> str:
@@ -22,8 +27,9 @@ def _add_text(parent, ns, name, value, attrs=None):
 
     # makes child under parent XMl ele
     element = element_tree.SubElement(parent, _tag(ns, name), attrs)
-    #puts the text inside the XML tag
+    # puts the text inside the XML tag
     element.text = str(value)
+
 
 def _require_string(data: dict, field: str) -> str:
     value = data.get(field)
@@ -31,6 +37,7 @@ def _require_string(data: dict, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field} is required")
     return value.strip()
+
 
 # similar to above but for decimals vv fun yes
 def _require_decimal(data: dict, field: str) -> Decimal:
@@ -49,6 +56,7 @@ def _require_decimal(data: dict, field: str) -> Decimal:
 def _fmt(value: Decimal) -> str:
     return f"{value:.2f}"
 
+
 # add customer details onto the invoice which creates the XML structure
 def _build_party(parent, tag: str, data: dict):
     wrapper = element_tree.SubElement(parent, _tag(INVOICE_CAC_NS, tag))
@@ -58,18 +66,39 @@ def _build_party(parent, tag: str, data: dict):
     tax_el = element_tree.SubElement(party, _tag(INVOICE_CAC_NS, "PartyTaxScheme"))
     _add_text(tax_el, INVOICE_CBC_FIELDS_NS, "CompanyID", _require_string(data, "ABN"))
 
+
 # creates invoice line by line
 def _build_line(parent, line: dict, currency: str):
     el = element_tree.SubElement(parent, _tag(INVOICE_CAC_NS, "InvoiceLine"))
     _add_text(el, INVOICE_CBC_FIELDS_NS, "ID", _require_string(line, "lineId"))
-    _add_text(el, INVOICE_CBC_FIELDS_NS, "InvoicedQuantity", _require_decimal(line, "quantity"))
-    _add_text(el, INVOICE_CBC_FIELDS_NS, "LineExtensionAmount", _fmt(_require_decimal(line, "lineTotal")), {"currencyID": currency})
+    _add_text(
+        el,
+        INVOICE_CBC_FIELDS_NS,
+        "InvoicedQuantity",
+        _require_decimal(line, "quantity"),
+    )
+    _add_text(
+        el,
+        INVOICE_CBC_FIELDS_NS,
+        "LineExtensionAmount",
+        _fmt(_require_decimal(line, "lineTotal")),
+        {"currencyID": currency},
+    )
     item = element_tree.SubElement(el, _tag(INVOICE_CAC_NS, "Item"))
-    _add_text(item, INVOICE_CBC_FIELDS_NS, "Description", _require_string(line, "description"))
+    _add_text(
+        item, INVOICE_CBC_FIELDS_NS, "Description", _require_string(line, "description")
+    )
     price = element_tree.SubElement(el, _tag(INVOICE_CAC_NS, "Price"))
-    _add_text(price, INVOICE_CBC_FIELDS_NS, "PriceAmount", _fmt(_require_decimal(line, "unitPrice")), {"currencyID": currency})
+    _add_text(
+        price,
+        INVOICE_CBC_FIELDS_NS,
+        "PriceAmount",
+        _fmt(_require_decimal(line, "unitPrice")),
+        {"currencyID": currency},
+    )
 
-#builds the whole invoice and returns it as an XML string
+
+# builds the whole invoice and returns it as an XML string
 def build_invoice_xml(data: dict) -> str:
     if not isinstance(data, dict):
         raise ValueError("Invoice data must be an object")
@@ -84,7 +113,7 @@ def build_invoice_xml(data: dict) -> str:
     customer = data.get("customer")
     lines = data.get("lines")
 
-    #checks nested structure is all goodies
+    # checks nested structure is all goodies
     if not isinstance(supplier, dict):
         raise ValueError("supplier must be an object")
 
@@ -101,7 +130,7 @@ def build_invoice_xml(data: dict) -> str:
     # sum line totals
     line_sum = sum(_require_decimal(line, "lineTotal") for line in lines)
 
-    #checks with total amount
+    # checks with total amount
     if line_sum != total_amount:
         raise ValueError("overalltotal must equal sum of line total values")
 
@@ -118,11 +147,19 @@ def build_invoice_xml(data: dict) -> str:
 
     # totals
     total_el = element_tree.SubElement(root, _tag(INVOICE_CAC_NS, "LegalMonetaryTotal"))
-    _add_text(total_el, INVOICE_CBC_FIELDS_NS, "PayableAmount", _fmt(total_amount), {"currencyID": currency})
+    _add_text(
+        total_el,
+        INVOICE_CBC_FIELDS_NS,
+        "PayableAmount",
+        _fmt(total_amount),
+        {"currencyID": currency},
+    )
 
     for line in lines:
         if not isinstance(line, dict):
             raise ValueError("Each line must be an object")
         _build_line(root, line, currency)
 
-    return element_tree.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8")
+    return element_tree.tostring(root, encoding="utf-8", xml_declaration=True).decode(
+        "utf-8"
+    )

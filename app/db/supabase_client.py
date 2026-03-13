@@ -8,14 +8,14 @@ from pathlib import Path
 from dotenv import load_dotenv
 from supabase import Client, create_client
 
-supabase_client: Client | None = None
+CLIENT: Client | None = None
 
 
 def get_supabase() -> Client:
     """Get the Supabase client."""
-    global supabase_client  # pylint: disable=global-statement
-    if supabase_client is not None:
-        return supabase_client
+    global CLIENT  # pylint: disable=global-statement
+    if CLIENT is not None:
+        return CLIENT
 
     load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
@@ -24,5 +24,5 @@ def get_supabase() -> Client:
     if not url or not key:
         raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
 
-    supabase_client = create_client(url, key)
-    return supabase_client
+    CLIENT = create_client(url, key)
+    return CLIENT
