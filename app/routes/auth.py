@@ -19,22 +19,22 @@ def register():
 
     supabase = get_db()
     if supabase is None:
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
     if not dev_token:
-        return_error("UNAUTHORIZED")
+        return return_error("UNAUTHORIZED")
 
     if dev_token not in VALID_DEV_TOKENS:
-        return_error("FORBIDDEN")
+        return return_error("FORBIDDEN")
 
     body = request.get_json(silent=True) or {}
     group_name = body.get("groupName")
 
     if not group_name:
-        return_error("GROUP_NAME_REQUIRED")
+        return return_error("GROUP_NAME_REQUIRED")
 
     # Prevent duplicate registrations by group name
     existing = (
@@ -45,9 +45,9 @@ def register():
     )
     existing_resp = sb_execute(existing)
     if existing_resp is None or sb_has_error(existing_resp):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
     if existing_resp.data:
-        return_error("GROUP_ALREADY_REGISTERED")
+        return return_error("GROUP_ALREADY_REGISTERED")
 
     # Generate API token
     api_token = uuid.uuid4().hex
@@ -57,7 +57,7 @@ def register():
     )
     created_resp = sb_execute(created)
     if created_resp is None or sb_has_error(created_resp):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     return jsonify({"APItoken": api_token}), HTTPStatus.CREATED
 
@@ -69,22 +69,22 @@ def reset():
 
     supabase = get_db()
     if supabase is None:
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
     if not dev_token:
-        return_error("UNAUTHORIZED")
+        return return_error("UNAUTHORIZED")
 
     if dev_token not in VALID_DEV_TOKENS:
-        return_error("FORBIDDEN")
+        return return_error("FORBIDDEN")
 
     body = request.get_json(silent=True) or {}
     group_name = body.get("groupName")
 
     if not group_name:
-        return_error("GROUP_NAME_REQUIRED")
+        return return_error("GROUP_NAME_REQUIRED")
 
     # make sure that the group does exist
     existing = (
@@ -95,10 +95,10 @@ def reset():
     )
     existing_resp = sb_execute(existing)
     if existing_resp is None or sb_has_error(existing_resp):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     if not existing_resp.data:
-        return_error("GROUP_NOT_FOUND")
+        return return_error("GROUP_NOT_FOUND")
 
     # Generate API token
     api_token = uuid.uuid4().hex
@@ -110,7 +110,7 @@ def reset():
     )
     created_resp = sb_execute(update)
     if created_resp is None or sb_has_error(created_resp):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     return jsonify({"APItoken": api_token}), HTTPStatus.OK
 
@@ -122,21 +122,21 @@ def revoke():
 
     supabase = get_db()
     if supabase is None:
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
     # Validate developer token (401)
     dev_token = request.headers.get("APIdevToken")
 
     if not dev_token:
-        return_error("UNAUTHORIZED")
+        return return_error("UNAUTHORIZED")
 
     if dev_token not in VALID_DEV_TOKENS:
-        return_error("FORBIDDEN")
+        return return_error("FORBIDDEN")
 
     body = request.get_json(silent=True) or {}
     group_name = body.get("groupName")
 
     if not group_name:
-        return_error("GROUP_NAME_REQUIRED")
+        return return_error("GROUP_NAME_REQUIRED")
 
     # check if the group exists
     existing = (
@@ -147,9 +147,9 @@ def revoke():
     )
     existing_resp = sb_execute(existing)
     if existing_resp is None or sb_has_error(existing_resp):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
     if not existing_resp.data:
-        return_error("GROUP_NOT_FOUND")
+        return return_error("GROUP_NOT_FOUND")
 
     api_token = existing_resp.data[0].get("api_token")
 
@@ -160,6 +160,6 @@ def revoke():
     )
     created_resp = sb_execute(delete)
     if created_resp is None or sb_has_error(created_resp):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     return jsonify({"APItoken": api_token}), HTTPStatus.OK

@@ -27,12 +27,12 @@ def generate_invoice():
     """Generate an invoice."""
     supabase = get_db()
     if supabase is None:
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(supabase, api_token):
-        return_error("UNAUTHORIZED")
+        return return_error("UNAUTHORIZED")
 
     body = request.get_json(silent=True) or {}
     template_id = body.get("templateInvoice")
@@ -47,13 +47,13 @@ def generate_invoice():
         )
         tmpl_rows_resp = sb_execute(tmpl_rows)
         if tmpl_rows_resp is None or sb_has_error(tmpl_rows_resp):
-            return_error("INTERNAL_SERVER_ERROR")
+            return return_error("INTERNAL_SERVER_ERROR")
 
         if not tmpl_rows_resp.data:
-            return_error("NOT_FOUND")
+            return return_error("NOT_FOUND")
 
         if not any(row.get("owner_token") == api_token for row in tmpl_rows_resp.data):
-            return_error("FORBIDDEN")
+            return return_error("FORBIDDEN")
 
     try:
         # If full invoice data is provided, build rich XML;
@@ -77,7 +77,7 @@ def generate_invoice():
         )
         created_resp = sb_execute(created)
         if created_resp is None or sb_has_error(created_resp):
-            return_error("INTERNAL_SERVER_ERROR")
+            return return_error("INTERNAL_SERVER_ERROR")
 
     except ValueError as e:
         return (
@@ -98,12 +98,12 @@ def list_invoices():
     """List invoices."""
     supabase = get_db()
     if supabase is None:
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(supabase, api_token):
-        return_error("UNAUTHORIZED")
+        return return_error("UNAUTHORIZED")
 
     # Get invoices owned by this API token
     resp = (
@@ -114,7 +114,7 @@ def list_invoices():
     )
     resp_exec = sb_execute(resp)
     if resp_exec is None or sb_has_error(resp_exec):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     invoice_ids = [row.get("id") for row in (resp_exec.data or [])]
 
@@ -130,12 +130,12 @@ def get_invoice(invoice_id):
     """Get an invoice."""
     supabase = get_db()
     if supabase is None:
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
     # Validate API token (401)
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(supabase, api_token):
-        return_error("UNAUTHORIZED")
+        return return_error("UNAUTHORIZED")
 
     resp = (
         supabase.table("api_invoices")
@@ -145,16 +145,16 @@ def get_invoice(invoice_id):
     )
     resp_exec = sb_execute(resp)
     if resp_exec is None or sb_has_error(resp_exec):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     if not resp_exec.data:
-        return_error("NOT_FOUND")
+        return return_error("NOT_FOUND")
 
     invoice = resp_exec.data[0]
 
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
-        return_error("FORBIDDEN")
+        return return_error("FORBIDDEN")
 
     return Response(
         invoice.get("xml") or "",
@@ -174,7 +174,7 @@ def delete_invoice(invoice_id):
     api_token = request.headers.get("APItoken")
 
     if not api_token or not is_valid_api_token(supabase, api_token):
-        return_error("UNAUTHORIZED")
+        return return_error("UNAUTHORIZED")
 
     existing = (
         supabase.table("api_invoices")
@@ -184,23 +184,23 @@ def delete_invoice(invoice_id):
     )
     existing_exec = sb_execute(existing)
     if existing_exec is None or sb_has_error(existing_exec):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     if not existing_exec.data:
-        return_error("NOT_FOUND")
+        return return_error("NOT_FOUND")
 
     invoice = existing_exec.data[0]
 
     # Check permission (403)
     if invoice.get("owner_token") != api_token:
-        return_error("FORBIDDEN")
+        return return_error("FORBIDDEN")
 
     deleted_xml = invoice.get("xml") or ""
 
     deleted = supabase.table("api_invoices").delete().eq("id", invoice_id)
     deleted_exec = sb_execute(deleted)
     if deleted_exec is None or sb_has_error(deleted_exec):
-        return_error("INTERNAL_SERVER_ERROR")
+        return return_error("INTERNAL_SERVER_ERROR")
 
     return Response(
         deleted_xml,
