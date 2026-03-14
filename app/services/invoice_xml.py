@@ -1,5 +1,6 @@
 """Invoice XML builder."""
 
+import json
 import xml.etree.ElementTree as element_tree
 from decimal import Decimal, InvalidOperation
 
@@ -101,8 +102,13 @@ def _build_line(parent, line: dict, currency: str):
 
 
 # builds the whole invoice and returns it as an XML string
-def build_invoice_xml(data: dict) -> str:
-    """Build the invoice XML."""
+def build_invoice_xml(data) -> str:
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError:
+            raise ValueError("Invoice data must be valid JSON")
+
     if not isinstance(data, dict):
         raise ValueError("Invoice data must be an object")
 
