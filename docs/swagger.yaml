@@ -3,7 +3,7 @@ info:
   title: GPTless Invoivcing API
   version: 1.0.0
   description: |
-    API for generating invoices
+    API for generating invoices. Get your API key [here](https://go.gptless.au/form).
 
 servers:
   - url: https://api.example.com

@@ -1,6 +1,6 @@
 """Main application file."""
 
-from flask import Flask
+from flask import Flask, redirect
 from app.routes.invoices import invoices_bp
 from app.routes.auth import auth_bp
 
@@ -13,8 +13,8 @@ app.register_blueprint(auth_bp)
 
 @app.route("/")
 def home():
-    """Home route."""
-    return {"message": "Invoice API running"}
+    """Redirects to swagger."""
+    return redirect("https://docs.gptless.au")
 
 
 if __name__ == "__main__":
