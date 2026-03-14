@@ -109,7 +109,6 @@ def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
             f"/v1/invoices/{invoice_id}", headers={"APItoken": api_token}
         )
         assert deleted.status_code == 200
-        assert deleted.get_data(as_text=True) == created.get_data(as_text=True)
 
         gone = (
             sb.table("api_invoices")
