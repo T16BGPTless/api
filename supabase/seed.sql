@@ -1,0 +1,2 @@
+-- Seed data is in migration 20260309000100_api_routes_tables.sql (api_groups, api_templates, api_invoices).
+-- This file exists so [db.seed] in config.toml does not fail; leave empty or add extra dev seeds here.
