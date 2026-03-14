@@ -84,19 +84,30 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
             
             invoice_data = merged_data
 
-        xml = build_invoice_xml(invoice_data)
-
         created = supabase.table("api_invoices").insert(
             {
                 "owner_token": api_token,
                 "template_id": template_id,
-                "xml": xml,
+                "xml": None,
                 "deleted": False,
                 "invoice_data": invoice_data,
             }
         )
         created_resp = sb_execute(created)
         if created_resp is None or sb_has_error(created_resp):
+            return return_error("INTERNAL_SERVER_ERROR")
+        
+        invoice_id = created_resp.data[0].get("id")
+        if invoice_id is None:
+            return return_error("INTERNAL_SERVER_ERROR")
+        invoice_data["invoiceID"] = invoice_id
+        xml = build_invoice_xml(template_id, invoice_data)
+        # Update the row with the generated XML
+        updated = (
+            supabase.table("api_invoices").update({"xml": xml}).eq("id", invoice_id)
+        )
+        updated_resp = sb_execute(updated)
+        if updated_resp is None or sb_has_error(updated_resp):
             return return_error("INTERNAL_SERVER_ERROR")
 
     except ValueError as e:
