@@ -1,3 +1,4 @@
+"""List invoices tests."""
 import pytest
 from unittest.mock import patch, MagicMock
 from app.app import app
