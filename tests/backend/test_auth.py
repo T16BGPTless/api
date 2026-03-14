@@ -397,5 +397,3 @@ def test_revoke_db_error_on_update(client):
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-
-
