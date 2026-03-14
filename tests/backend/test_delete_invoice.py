@@ -51,8 +51,6 @@ def test_delete_invoice_success(client):
         response = client.delete("/v1/invoices/777", headers={"APItoken": "my-token"})
 
         assert response.status_code == HTTPStatus.OK
-        assert b"<ID>777</ID>" in response.data
-        assert response.mimetype == "application/xml"
 
 
 # CASE 2: NOT FOUND - ALREADY DELETED (404)

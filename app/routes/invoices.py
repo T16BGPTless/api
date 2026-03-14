@@ -190,8 +190,6 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if invoice.get("owner_token") != api_token:
         return return_error("FORBIDDEN")
 
-    deleted_xml = invoice.get("xml") or ""
-
     # Soft-delete: mark the row as deleted instead of removing it
     deleted = (
         supabase.table("api_invoices").update({"deleted": True}).eq("id", invoice_id)
@@ -200,8 +198,4 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if deleted_exec is None or sb_has_error(deleted_exec):
         return return_error("INTERNAL_SERVER_ERROR")
 
-    return Response(
-        deleted_xml,
-        mimetype="application/xml",
-        status=HTTPStatus.OK,
-    )
+    return HTTPStatus.OK
