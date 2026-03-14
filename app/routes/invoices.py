@@ -89,7 +89,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
                 "owner_token": api_token,
                 "template_id": template_id,
                 "xml": "None",
-                "deleted": False,
+                "deleted": True,
                 "invoice_data": invoice_data,
             }
         )
@@ -102,9 +102,11 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
             return return_error("INTERNAL_SERVER_ERROR")
         invoice_data["invoiceID"] = str(invoice_id)
         xml = build_invoice_xml(invoice_data)
-        # Update the row with the generated XML
+        # Update the row with the generated XML and mark it as not deleted
         updated = (
-            supabase.table("api_invoices").update({"xml": xml}).eq("id", invoice_id)
+            supabase.table("api_invoices")
+            .update({"xml": xml, "deleted": False})
+            .eq("id", invoice_id)
         )
         updated_resp = sb_execute(updated)
         if updated_resp is None or sb_has_error(updated_resp):
