@@ -6,7 +6,8 @@ info:
     API for generating invoices. Get your API key [here](https://go.gptless.au/form).
 
 servers:
-  - url: https://api.example.com
+  - url: https://api.gptless.au
+  - url: https://preview.gptless.au
 
 tags:
   - name: Invoices
