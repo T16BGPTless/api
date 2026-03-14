@@ -40,6 +40,8 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
     if template_id is None:
         template_id = ""
     invoice_data = body.get("InvoiceData")
+    if invoice_data is None:
+        invoice_data = {}
 
     # Check template exists (404) and permission (403)
     if template_id:
