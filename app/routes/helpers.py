@@ -9,12 +9,12 @@ from app.db.supabase_client import get_supabase
 VALID_DEV_TOKENS = {"dev-secret"}
 
 
-def sb_has_error(resp: dict) -> bool:
+def sb_has_error(resp) -> bool:
     """Check if the response has an error."""
     return getattr(resp, "error", None) is not None
 
 
-def sb_execute(builder: Client) -> dict | None:
+def sb_execute(builder):
     """Execute the builder."""
     try:
         return builder.execute()
