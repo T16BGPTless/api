@@ -53,7 +53,7 @@ def test_generate_invoice_success_rich_data(client):
     
     with patch("app.routes.auth.get_db", return_value=MagicMock()), \
         
-        response = client.post("/v1/auth/register", 
+        response = client.post("/v1/auth/reset", 
                                json=payload, 
                                headers={"APIdevToken": ""})
         
@@ -73,7 +73,7 @@ def test_generate_invoice_template_not_found(client):
     
     with patch("app.routes.auth.get_db", return_value=MagicMock()), \
         
-        response = client.post("/v1/auth/register", 
+        response = client.post("/v1/auth/reset", 
                                json=payload, 
                                headers={"APIdevToken": "test12345"})
         
@@ -95,7 +95,7 @@ def test_generate_invoice_template_wrong_owner(client):
          patch("app.routes.auth.sb_execute", side_effect=[mock_existing, mock_insert]), \
          patch("app.routes.auth.sb_has_error", return_value=False), \
 
-        response = client.post("/v1/auth/register", 
+        response = client.post("/v1/auth/reset", 
                                json=payload, 
                                headers={"APIdevToken": "dev-secret"})
         
@@ -114,7 +114,7 @@ def test_generate_invoice_xml_error(client):
     payload = {}
     
     with patch("app.routes.auth.get_db", return_value=MagicMock()), \
-        response = client.post("/v1/auth/register", 
+        response = client.post("/v1/auth/reset", 
                                json=payload, 
                                headers={"APIdevToken": "dev-secret"})
         
