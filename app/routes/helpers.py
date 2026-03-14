@@ -11,8 +11,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-VALID_DEV_TOKENS = os.getenv("VALID_DEV_TOKENS").split(",")
-if VALID_DEV_TOKENS == [""]:
+try:
+    VALID_DEV_TOKENS = os.getenv("VALID_DEV_TOKENS").split(",")
+except Exception:
     VALID_DEV_TOKENS = ["dev-secret"]
 
 
