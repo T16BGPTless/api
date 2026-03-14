@@ -57,9 +57,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
             return return_error("FORBIDDEN")
 
     try:
-        # If full invoice data is provided, build rich XML;
-        # otherwise fall back to a simple template-based XML so
-        # the basic integration test still passes.
+        # If template exists, merge its invoice_data with the request's InvoiceData (request takes precedence)
         if template_id:
             template_resp = sb_execute(
                 supabase.table("api_invoices")
@@ -91,7 +89,6 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
                 "owner_token": api_token,
                 "template_id": template_id,
                 "xml": xml,
-                "invoice_data": invoice_data,
             }
         )
         created_resp = sb_execute(created)

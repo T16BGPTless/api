@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS public.api_invoices (
   owner_token text NOT NULL,
   template_id text NOT NULL,
   xml text NOT NULL,
+  invoice_data jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   deleted boolean NOT NULL DEFAULT false
 );
@@ -121,11 +122,11 @@ VALUES
 ON CONFLICT ON CONSTRAINT api_templates_owner_template_unique DO NOTHING;
 
 -- Seed two invoices for token abc123 (IDs kept for compatibility with prior code).
-INSERT INTO public.api_invoices (id, owner_token, template_id, xml)
+INSERT INTO public.api_invoices (id, owner_token, template_id, xml, invoice_data)
 OVERRIDING SYSTEM VALUE
 VALUES
-  (12345, 'abc123', 'template1', '<Invoice><ID>12345</ID></Invoice>'),
-  (54321, 'abc123', 'template1', '<Invoice><ID>54321</ID></Invoice>')
+  (12345, 'abc123', 'template1', '<Invoice><ID>12345</ID></Invoice>', {}),
+  (54321, 'abc123', 'template1', '<Invoice><ID>54321</ID></Invoice>', {})
 ON CONFLICT DO NOTHING;
 
 -- Ensure the identity sequence is >= the seeded max(id)
