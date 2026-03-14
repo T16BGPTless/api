@@ -50,7 +50,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 CREATE TABLE IF NOT EXISTS public.api_groups (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   group_name text NOT NULL UNIQUE,
-  api_token text NOT NULL UNIQUE,
+  api_token text UNIQUE,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

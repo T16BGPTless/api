@@ -18,7 +18,7 @@ paths:
       tags: [Invoices]
       summary: Generate a standard invoice
       description: |
-        Creates a UBL XML invoice given the correct data. If given a previous invoiceID or template invoiceID, it will fill that data into the unspecified fields.
+        Creates a UBL XML invoice given the correct data. If given a previous invoiceID, it will fill that data into the unspecified fields. Please note that if a template is not used, all other fields must be filled, however if a template is used, only fields you wish to change have to be filled.
       
       parameters:
         - $ref: "#/components/parameters/APItoken"
