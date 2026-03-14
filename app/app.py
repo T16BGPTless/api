@@ -14,7 +14,7 @@ app.register_blueprint(auth_bp)
 @app.route("/")
 def home():
     """Redirects to swagger."""
-    return redirect("docs.gptless.au")
+    return redirect("https://docs.gptless.au")
 
 
 if __name__ == "__main__":
