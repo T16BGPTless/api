@@ -2,6 +2,7 @@
 
 import json
 import pytest
+
 from app.services.invoice_xml import build_invoice_xml
 
 
@@ -26,6 +27,8 @@ def invoice_data():
             }
         ],
     }
+    data.update(overrides)
+    return data
 
 
 def test_build_invoice_xml_success(invoice_data):

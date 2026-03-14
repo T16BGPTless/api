@@ -41,7 +41,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13.12"
+          python-version: "3.12"
 
       - name: Install backend dependencies
         run: python -m pip install --upgrade pip && pip install -r requirements.txt
@@ -52,3 +52,38 @@ jobs:
 
       - name: Run pylint
         run: pylint app/**/*.py --errors-only
+
+  database-tests:
+    name: Database tests (Supabase)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Export Supabase env for Python tests
+        run: |
+          eval $(supabase status -o env)
+          echo "SUPABASE_URL=${API_URL}" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> $GITHUB_ENV
+
+      - name: Run pgTAP database tests
+        run: supabase test db
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Run pytest (including Supabase integration tests)
+        run: PYTHONPATH=. pytest tests/backend -v

@@ -1,40 +1,26 @@
-"""
-Authorisation methods
-"""
+"""Authorisation methods."""
 
 from http import HTTPStatus
 import uuid
-from flask import Blueprint, jsonify, request
-from app.routes.helpers import sb_has_error, sb_execute, get_db, return_error
+from flask import Blueprint, jsonify
+from app.routes.helpers import (
+    sb_has_error,
+    sb_execute,
+    return_error,
+    require_dev_token_and_group,
+)
 
 auth_bp = Blueprint("auth", __name__)
-
-VALID_DEV_TOKENS = {"dev-secret"}
 
 
 # ------------------- POST /v1/auth/register -------------------
 @auth_bp.route("/v1/auth/register", methods=["POST"])
-def register(): # pylint: disable=too-many-return-statements
+def register():  # pylint: disable=too-many-return-statements
     """Register a new group."""
 
-    supabase = get_db()
-    if supabase is None:
-        return return_error("INTERNAL_SERVER_ERROR")
-
-    # Validate developer token (401)
-    dev_token = request.headers.get("APIdevToken")
-
-    if not dev_token:
-        return return_error("UNAUTHORIZED")
-
-    if dev_token not in VALID_DEV_TOKENS:
-        return return_error("FORBIDDEN")
-
-    body = request.get_json(silent=True) or {}
-    group_name = body.get("groupName")
-
-    if not group_name:
-        return return_error("GROUP_NAME_REQUIRED")
+    supabase, group_name, error = require_dev_token_and_group()
+    if error is not None:
+        return error
 
     # Prevent duplicate registrations by group name
     existing = (
@@ -64,27 +50,12 @@ def register(): # pylint: disable=too-many-return-statements
 
 # ------------------- PUT /v1/auth/reset -------------------
 @auth_bp.route("/v1/auth/reset", methods=["PUT"])
-def reset(): # pylint: disable=too-many-return-statements
+def reset():  # pylint: disable=too-many-return-statements
     """Reset the API token for a group."""
 
-    supabase = get_db()
-    if supabase is None:
-        return return_error("INTERNAL_SERVER_ERROR")
-
-    # Validate developer token (401)
-    dev_token = request.headers.get("APIdevToken")
-
-    if not dev_token:
-        return return_error("UNAUTHORIZED")
-
-    if dev_token not in VALID_DEV_TOKENS:
-        return return_error("FORBIDDEN")
-
-    body = request.get_json(silent=True) or {}
-    group_name = body.get("groupName")
-
-    if not group_name:
-        return return_error("GROUP_NAME_REQUIRED")
+    supabase, group_name, error = require_dev_token_and_group()
+    if error is not None:
+        return error
 
     # make sure that the group does exist
     existing = (
@@ -117,26 +88,12 @@ def reset(): # pylint: disable=too-many-return-statements
 
 # ------------------- delete /v1/auth/revoke -------------------
 @auth_bp.route("/v1/auth/revoke", methods=["DELETE"])
-def revoke(): # pylint: disable=too-many-return-statements
+def revoke():  # pylint: disable=too-many-return-statements
     """Revoke the API token for a group."""
 
-    supabase = get_db()
-    if supabase is None:
-        return return_error("INTERNAL_SERVER_ERROR")
-    # Validate developer token (401)
-    dev_token = request.headers.get("APIdevToken")
-
-    if not dev_token:
-        return return_error("UNAUTHORIZED")
-
-    if dev_token not in VALID_DEV_TOKENS:
-        return return_error("FORBIDDEN")
-
-    body = request.get_json(silent=True) or {}
-    group_name = body.get("groupName")
-
-    if not group_name:
-        return return_error("GROUP_NAME_REQUIRED")
+    supabase, group_name, error = require_dev_token_and_group()
+    if error is not None:
+        return error
 
     # check if the group exists
     existing = (

@@ -3,37 +3,37 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, Response
 from app.services.invoice_xml import build_invoice_xml
-from app.routes.helpers import sb_has_error, sb_execute, get_db, return_error
+from app.routes.helpers import (
+    sb_has_error,
+    sb_execute,
+    get_db,
+    return_error,
+    is_valid_api_token,
+)
 
 invoices_bp = Blueprint("invoices", __name__)
 
 
-def is_valid_api_token(supabase, api_token: str) -> bool:
-    """Check if the API token is valid."""
-    builder = (
-        supabase.table("api_groups")
-        .select("api_token")
-        .eq("api_token", api_token)
-        .limit(1)
-    )
-    resp = sb_execute(builder)
-    if resp is None or sb_has_error(resp):
-        return False
-    return bool(resp.data)
+def require_api_token():
+    """Get Supabase client and validate APItoken header."""
+    supabase = get_db()
+    if supabase is None:
+        return None, None, return_error("INTERNAL_SERVER_ERROR")
+
+    api_token = request.headers.get("APItoken")
+    if not api_token or not is_valid_api_token(supabase, api_token):
+        return supabase, None, return_error("UNAUTHORIZED")
+
+    return supabase, api_token, None
 
 
 # ------------------- POST /v1/invoice/generate  -------------------
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
-def generate_invoice(): # pylint: disable=too-many-return-statements
+def generate_invoice():  # pylint: disable=too-many-return-statements
     """Generate an invoice."""
-    supabase = get_db()
-    if supabase is None:
-        return return_error("INTERNAL_SERVER_ERROR")
-    # Validate API token (401)
-    api_token = request.headers.get("APItoken")
-
-    if not api_token or not is_valid_api_token(supabase, api_token):
-        return return_error("UNAUTHORIZED")
+    supabase, api_token, error = require_api_token()
+    if error is not None:
+        return error
 
     body = request.get_json(silent=True) or {}
     template_id = body.get("templateInvoice")
@@ -97,14 +97,9 @@ def generate_invoice(): # pylint: disable=too-many-return-statements
 @invoices_bp.route("/v1/invoices", methods=["GET"])
 def list_invoices():
     """List invoices."""
-    supabase = get_db()
-    if supabase is None:
-        return return_error("INTERNAL_SERVER_ERROR")
-    # Validate API token (401)
-    api_token = request.headers.get("APItoken")
-
-    if not api_token or not is_valid_api_token(supabase, api_token):
-        return return_error("UNAUTHORIZED")
+    supabase, api_token, error = require_api_token()
+    if error is not None:
+        return error
 
     # Get invoices owned by this API token, not deleted
     resp = (
@@ -128,16 +123,11 @@ def list_invoices():
 
 # ------------------- GET /v1/invoices/<int:invoice_id> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoice_id>", methods=["GET"])
-def get_invoice(invoice_id): # pylint: disable=too-many-return-statements
+def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     """Get an invoice."""
-    supabase = get_db()
-    if supabase is None:
-        return return_error("INTERNAL_SERVER_ERROR")
-    # Validate API token (401)
-    api_token = request.headers.get("APItoken")
-
-    if not api_token or not is_valid_api_token(supabase, api_token):
-        return return_error("UNAUTHORIZED")
+    supabase, api_token, error = require_api_token()
+    if error is not None:
+        return error
 
     resp = (
         supabase.table("api_invoices")
@@ -171,18 +161,11 @@ def get_invoice(invoice_id): # pylint: disable=too-many-return-statements
 
 # ------------------- DELETE /v1/invoices/<int:invoice_id> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoice_id>", methods=["DELETE"])
-def delete_invoice(invoice_id): # pylint: disable=too-many-return-statements
+def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     """Soft-delete an invoice (flag as deleted)."""
-    supabase = get_db()
-
-    if supabase is None:
-        return return_error("INTERNAL_SERVER_ERROR")
-
-    # Validate API token (401)
-    api_token = request.headers.get("APItoken")
-
-    if not api_token or not is_valid_api_token(supabase, api_token):
-        return return_error("UNAUTHORIZED")
+    supabase, api_token, error = require_api_token()
+    if error is not None:
+        return error
 
     existing = (
         supabase.table("api_invoices")
