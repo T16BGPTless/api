@@ -24,7 +24,7 @@ def is_valid_api_token(supabase, api_token: str) -> bool:
 
 # ------------------- POST /v1/invoice/generate  -------------------
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
-def generate_invoice(): # pylint: disable=too-many-return-statements
+def generate_invoice():  # pylint: disable=too-many-return-statements
     """Generate an invoice."""
     supabase = get_db()
     if supabase is None:
@@ -128,7 +128,7 @@ def list_invoices():
 
 # ------------------- GET /v1/invoices/<int:invoice_id> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoice_id>", methods=["GET"])
-def get_invoice(invoice_id): # pylint: disable=too-many-return-statements
+def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     """Get an invoice."""
     supabase = get_db()
     if supabase is None:
@@ -171,7 +171,7 @@ def get_invoice(invoice_id): # pylint: disable=too-many-return-statements
 
 # ------------------- DELETE /v1/invoices/<int:invoice_id> -------------------
 @invoices_bp.route("/v1/invoices/<int:invoice_id>", methods=["DELETE"])
-def delete_invoice(invoice_id): # pylint: disable=too-many-return-statements
+def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     """Soft-delete an invoice (flag as deleted)."""
     supabase = get_db()
 
