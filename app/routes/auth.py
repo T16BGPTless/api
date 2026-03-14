@@ -100,7 +100,6 @@ def revoke():  # pylint: disable=too-many-return-statements
         supabase.table("api_groups")
         .select("api_token")
         .eq("group_name", group_name)
-        .eq("deleted", False)
         .limit(1)
     )
     existing_resp = sb_execute(existing)
@@ -108,6 +107,9 @@ def revoke():  # pylint: disable=too-many-return-statements
         return return_error("INTERNAL_SERVER_ERROR")
     if not existing_resp.data:
         return return_error("GROUP_NOT_FOUND")
+    
+    if existing_resp.data[0].get("deleted"):
+        return return_error("NOT_FOUND")
 
     delete = (
         supabase.table("api_groups")
