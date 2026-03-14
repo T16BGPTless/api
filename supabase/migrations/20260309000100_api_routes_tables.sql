@@ -93,17 +93,17 @@ ALTER TABLE public.api_invoices ENABLE ROW LEVEL SECURITY;
 -- Allow all roles full access for now (development-friendly).
 -- You can later restrict these (e.g. TO service_role ONLY, or add predicates).
 CREATE POLICY api_groups_all ON public.api_groups
-  FOR ALL TO public
+  FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
 
 CREATE POLICY api_templates_all ON public.api_templates
-  FOR ALL TO public
+  FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
 
 CREATE POLICY api_invoices_all ON public.api_invoices
-  FOR ALL TO public
+  FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
 
