@@ -62,7 +62,9 @@ def return_error(error: str) -> tuple[Response, int]:
     ), status
 
 
-def require_dev_token_and_group() -> tuple[Client | None, str | None, tuple[Response, int] | None]:
+def require_dev_token_and_group() -> tuple[
+    Client | None, str | None, tuple[Response, int] | None
+]:
     """Validate developer token and group name."""
     supabase = get_db()
     if supabase is None:
