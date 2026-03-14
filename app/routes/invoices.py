@@ -88,7 +88,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
             {
                 "owner_token": api_token,
                 "template_id": template_id,
-                "xml": None,
+                "xml": "None",
                 "deleted": False,
                 "invoice_data": invoice_data,
             }
