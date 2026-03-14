@@ -12,7 +12,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 

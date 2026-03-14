@@ -34,7 +34,7 @@ def test_register_success(client):
     created_resp = MockResponse(data=[{"api_token": "new-token"}])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", side_effect=[existing_resp, created_resp]),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):
@@ -52,7 +52,7 @@ def test_register_success(client):
 
 def test_register_missing_dev_token(client):
     """Missing APIdevToken header returns 401."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.post("/v1/auth/register", json={"groupName": "grp"})
 
     assert resp.status_code == HTTPStatus.UNAUTHORIZED
@@ -60,7 +60,7 @@ def test_register_missing_dev_token(client):
 
 def test_register_forbidden_dev_token(client):
     """Invalid dev token returns 403."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.post(
             "/v1/auth/register",
             json={"groupName": "grp"},
@@ -72,7 +72,7 @@ def test_register_forbidden_dev_token(client):
 
 def test_register_group_name_required(client):
     """Missing groupName returns 400."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.post(
             "/v1/auth/register",
             json={},
@@ -88,7 +88,7 @@ def test_register_group_already_registered(client):
     existing_resp = MockResponse(data=[{"api_token": "existing"}])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", return_value=existing_resp),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):
@@ -106,7 +106,7 @@ def test_register_db_error_on_lookup(client):
     mock_supabase = MagicMock()
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", return_value=None),
     ):
         resp = client.post(
@@ -120,7 +120,7 @@ def test_register_db_error_on_lookup(client):
 
 def test_register_get_db_failure(client):
     """If get_db returns None, return 500."""
-    with patch("app.routes.auth.get_db", return_value=None):
+    with patch("app.routes.helpers.get_db", return_value=None):
         resp = client.post(
             "/v1/auth/register",
             json={"groupName": "my-group"},
@@ -136,7 +136,7 @@ def test_register_db_error_on_insert(client):
     existing_resp = MockResponse(data=[])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         # First call: lookup ok; second call: insert fails
         patch("app.routes.auth.sb_execute", side_effect=[existing_resp, None]),
         patch("app.routes.auth.sb_has_error", return_value=False),
@@ -160,7 +160,7 @@ def test_reset_success(client):
     update_resp = MockResponse(data=[{"api_token": "new-token"}])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", side_effect=[existing_resp, update_resp]),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):
@@ -182,7 +182,7 @@ def test_reset_group_not_found(client):
     existing_resp = MockResponse(data=[])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", return_value=existing_resp),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):
@@ -197,7 +197,7 @@ def test_reset_group_not_found(client):
 
 def test_reset_get_db_failure(client):
     """If get_db() returns None for reset, return 500."""
-    with patch("app.routes.auth.get_db", return_value=None):
+    with patch("app.routes.helpers.get_db", return_value=None):
         resp = client.put(
             "/v1/auth/reset",
             json={"groupName": "my-group"},
@@ -209,7 +209,7 @@ def test_reset_get_db_failure(client):
 
 def test_reset_missing_dev_token(client):
     """Missing APIdevToken on reset returns 401."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.put("/v1/auth/reset", json={"groupName": "grp"})
 
     assert resp.status_code == HTTPStatus.UNAUTHORIZED
@@ -217,7 +217,7 @@ def test_reset_missing_dev_token(client):
 
 def test_reset_forbidden_dev_token(client):
     """Invalid dev token on reset returns 403."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.put(
             "/v1/auth/reset",
             json={"groupName": "grp"},
@@ -229,7 +229,7 @@ def test_reset_forbidden_dev_token(client):
 
 def test_reset_group_name_required(client):
     """Missing groupName on reset returns 400."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.put(
             "/v1/auth/reset",
             json={},
@@ -244,7 +244,7 @@ def test_reset_db_error_on_lookup(client):
     mock_supabase = MagicMock()
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", return_value=None),
     ):
         resp = client.put(
@@ -262,7 +262,7 @@ def test_reset_db_error_on_update(client):
     existing_resp = MockResponse(data=[{"api_token": "old"}])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", side_effect=[existing_resp, None]),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):
@@ -285,7 +285,7 @@ def test_revoke_success(client):
     update_resp = MockResponse(data=[{"api_token": None}])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", side_effect=[existing_resp, update_resp]),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):
@@ -306,7 +306,7 @@ def test_revoke_group_not_found(client):
     existing_resp = MockResponse(data=[])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", return_value=existing_resp),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):
@@ -321,7 +321,7 @@ def test_revoke_group_not_found(client):
 
 def test_revoke_get_db_failure(client):
     """If get_db() returns None for revoke, return 500."""
-    with patch("app.routes.auth.get_db", return_value=None):
+    with patch("app.routes.helpers.get_db", return_value=None):
         resp = client.delete(
             "/v1/auth/revoke",
             json={"groupName": "my-group"},
@@ -333,7 +333,7 @@ def test_revoke_get_db_failure(client):
 
 def test_revoke_missing_dev_token(client):
     """Missing APIdevToken on revoke returns 401."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.delete("/v1/auth/revoke", json={"groupName": "grp"})
 
     assert resp.status_code == HTTPStatus.UNAUTHORIZED
@@ -341,7 +341,7 @@ def test_revoke_missing_dev_token(client):
 
 def test_revoke_forbidden_dev_token(client):
     """Invalid dev token on revoke returns 403."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.delete(
             "/v1/auth/revoke",
             json={"groupName": "grp"},
@@ -353,7 +353,7 @@ def test_revoke_forbidden_dev_token(client):
 
 def test_revoke_group_name_required(client):
     """Missing groupName on revoke returns 400."""
-    with patch("app.routes.auth.get_db", return_value=MagicMock()):
+    with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.delete(
             "/v1/auth/revoke",
             json={},
@@ -368,7 +368,7 @@ def test_revoke_db_error_on_lookup(client):
     mock_supabase = MagicMock()
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", return_value=None),
     ):
         resp = client.delete(
@@ -386,7 +386,7 @@ def test_revoke_db_error_on_update(client):
     existing_resp = MockResponse(data=[{"api_token": "old"}])
 
     with (
-        patch("app.routes.auth.get_db", return_value=mock_supabase),
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
         patch("app.routes.auth.sb_execute", side_effect=[existing_resp, None]),
         patch("app.routes.auth.sb_has_error", return_value=False),
     ):

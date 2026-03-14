@@ -4,8 +4,13 @@ import pytest
 from unittest.mock import patch, MagicMock
 from postgrest.exceptions import APIError
 from http import HTTPStatus
-from app.routes.helpers import sb_has_error, sb_execute, get_db, return_error
-from app.routes.invoices import is_valid_api_token
+from app.routes.helpers import (
+    sb_has_error,
+    sb_execute,
+    get_db,
+    return_error,
+    is_valid_api_token,
+)
 from app.app import app
 
 
@@ -28,8 +33,8 @@ def test_is_valid_api_token_true():
     mock_resp = MockResponse(data=[{"api_token": "good-token"}])
 
     with (
-        patch("app.routes.invoices.sb_execute", return_value=mock_resp),
-        patch("app.routes.invoices.sb_has_error", return_value=False),
+        patch("app.routes.helpers.sb_execute", return_value=mock_resp),
+        patch("app.routes.helpers.sb_has_error", return_value=False),
     ):
         assert is_valid_api_token(mock_supabase, "good-token") is True
 
@@ -40,8 +45,8 @@ def test_is_valid_api_token_false_empty():
     mock_resp = MockResponse(data=[])
 
     with (
-        patch("app.routes.invoices.sb_execute", return_value=mock_resp),
-        patch("app.routes.invoices.sb_has_error", return_value=False),
+        patch("app.routes.helpers.sb_execute", return_value=mock_resp),
+        patch("app.routes.helpers.sb_has_error", return_value=False),
     ):
         assert is_valid_api_token(mock_supabase, "bad-token") is False
 
@@ -50,7 +55,7 @@ def test_is_valid_api_token_db_error():
     """Returns False if sb_execute fails or has an error."""
     mock_supabase = MagicMock()
 
-    with patch("app.routes.invoices.sb_execute", return_value=None):
+    with patch("app.routes.helpers.sb_execute", return_value=None):
         assert is_valid_api_token(mock_supabase, "token") is False
 
 

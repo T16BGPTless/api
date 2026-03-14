@@ -116,7 +116,7 @@ def test_generate_invoice_xml_error(client):
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
         patch(
-            "app.routes.invoices.build_invoice_xml",
+            "app.services.invoice_xml.build_invoice_xml",
             side_effect=ValueError("Invalid data format"),
         ),
     ):
