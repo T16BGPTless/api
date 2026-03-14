@@ -26,14 +26,10 @@ def require_api_token():
 
     return supabase, api_token, None
 
+
 def get_group_id_from_token(supabase, api_token):
     """Helper to get group name from API token."""
-    resp = (
-        supabase.table("api_groups")
-        .select("id")
-        .eq("api_token", api_token)
-        .limit(1)
-    )
+    resp = supabase.table("api_groups").select("id").eq("api_token", api_token).limit(1)
     resp_exec = sb_execute(resp)
     if resp_exec is None or sb_has_error(resp_exec) or not resp_exec.data:
         return return_error("UNAUTHORIZED")
@@ -59,9 +55,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
     # Check template exists (404) and permission (403)
     if template_id:
         tmpl_rows = (
-            supabase.table("api_invoices")
-            .select("owner_token")
-            .eq("id", template_id)
+            supabase.table("api_invoices").select("owner_token").eq("id", template_id)
         )
         tmpl_rows_resp = sb_execute(tmpl_rows)
         if tmpl_rows_resp is None or sb_has_error(tmpl_rows_resp):
@@ -84,7 +78,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
                 .eq("id", template_id)
                 .limit(1)
             )
-            
+
             # Extract the inner JSON data (default to empty dict if missing)
             template_data = {}
             if template_resp and template_resp.data:
@@ -98,7 +92,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
 
             if invoice_data:
                 merged_data.update(invoice_data)
-            
+
             invoice_data = merged_data
 
         group_id = get_group_id_from_token(supabase, api_token)
@@ -115,7 +109,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
         created_resp = sb_execute(created)
         if created_resp is None or sb_has_error(created_resp):
             return return_error("INTERNAL_SERVER_ERROR")
-        
+
         invoice_id = created_resp.data[0].get("id")
         if invoice_id is None:
             return return_error("INTERNAL_SERVER_ERROR")

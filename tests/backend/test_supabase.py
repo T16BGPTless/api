@@ -1,11 +1,24 @@
 """Supabase integration tests."""
 
-from pathlib import Path
+import os
 import sys
 import uuid
+from pathlib import Path
 from http import HTTPStatus
 
 import pytest
+
+
+@pytest.fixture
+def valid_dev_token():
+    """Token from VALID_DEV_TOKENS env (required for auth tests)."""
+    raw = os.environ.get("VALID_DEV_TOKENS", "").strip()
+    token = raw.split(",")[0].strip() if raw else ""
+    if not token:
+        pytest.skip(
+            "VALID_DEV_TOKENS not set (set in CI via secrets or in .env locally)"
+        )
+    return token
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -33,13 +46,13 @@ def flask_client():
     return app.test_client()
 
 
-def test_auth_register_creates_group_row(flask_client, sb):
+def test_auth_register_creates_group_row(flask_client, sb, valid_dev_token):
     """Test that registering a group creates a group row in the database."""
     group_name = f"pytest-{uuid.uuid4().hex}"
     try:
         resp = flask_client.post(
             "/v1/auth/register",
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
             json={"groupName": group_name},
         )
         assert resp.status_code == 201
@@ -128,4 +141,3 @@ def test_auth_register_creates_group_row(flask_client, sb):
 #             "owner_token", api_token
 #         ).execute()
 #         sb.table("api_groups").delete().eq("group_name", group_name).execute()
-    

@@ -11,10 +11,11 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-try:
-    VALID_DEV_TOKENS = os.getenv("VALID_DEV_TOKENS").split(",")
-except Exception:
-    VALID_DEV_TOKENS = ["dev-secret"]
+raw = os.getenv("VALID_DEV_TOKENS")
+if raw and raw.strip():
+    VALID_DEV_TOKENS = frozenset(t.strip() for t in raw.split(",") if t.strip())
+else:
+    VALID_DEV_TOKENS = frozenset()
 
 
 def sb_has_error(resp) -> bool:

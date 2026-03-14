@@ -107,7 +107,7 @@ def revoke():  # pylint: disable=too-many-return-statements
         return return_error("INTERNAL_SERVER_ERROR")
     if not existing_resp.data:
         return return_error("GROUP_NOT_FOUND")
-    
+
     if existing_resp.data[0].get("api_token") is None:
         return return_error("NOT_FOUND")
 

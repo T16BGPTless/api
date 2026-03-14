@@ -1,0 +1,6 @@
+# Allow custom secret VALID_DEV_TOKENS (set in repo Secrets).
+# See https://github.com/rhysd/actionlint/blob/main/docs/config.md
+paths:
+  "workflows/ci.yml":
+    ignore:
+      - "Context access might be invalid: VALID_DEV_TOKENS"
