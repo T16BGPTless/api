@@ -206,11 +206,7 @@ paths:
           description: |
             **OK**
             
-            Returns the deleted UBL XML Invoice.
-          content:
-            application/xml:
-              schema:
-                $ref: "#/components/schemas/UBLInvoiceExample"
+            Invoice Deleted.
 
         "401":
           description: |
@@ -430,14 +426,7 @@ paths:
           description: |
             **OK**
             
-            returns an object with the deleted API token
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  APItoken:
-                    type: string
+            API Token revoked.
         
         "401":
           description: Unauthorized. Missing or invalid API token
