@@ -1,4 +1,5 @@
 """Helper tests."""
+
 import pytest
 from unittest.mock import patch, MagicMock
 from postgrest.exceptions import APIError
