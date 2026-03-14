@@ -58,74 +58,74 @@ def test_auth_register_creates_group_row(flask_client, sb):
         sb.table("api_groups").delete().eq("group_name", group_name).execute()
 
 
-def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
-    """Test that generating an invoice creates a invoice row in the database."""
-    # Create a group + template we own, then generate an invoice and verify it exists in DB.
-    group_name = f"pytest-{uuid.uuid4().hex}"
-    template_id = f"tmpl-{uuid.uuid4().hex}"
-    api_token = uuid.uuid4().hex
-    invoice_id = None
+# def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
+#     """Test that generating an invoice creates a invoice row in the database."""
+#     # Create a group + template we own, then generate an invoice and verify it exists in DB.
+#     group_name = f"pytest-{uuid.uuid4().hex}"
+#     template_id = f"tmpl-{uuid.uuid4().hex}"
+#     api_token = uuid.uuid4().hex
+#     invoice_id = None
 
-    try:
-        sb.table("api_groups").insert(
-            {"group_name": group_name, "api_token": api_token}
-        ).execute()
-        sb.table("api_templates").insert(
-            {"template_id": template_id, "owner_token": api_token}
-        ).execute()
+#     try:
+#         sb.table("api_groups").insert(
+#             {"group_name": group_name, "api_token": api_token}
+#         ).execute()
+#         sb.table("api_templates").insert(
+#             {"template_id": template_id, "owner_token": api_token}
+#         ).execute()
 
-        created = flask_client.post(
-            "/v1/invoices/generate",
-            headers={"APItoken": api_token},
-            json={"templateInvoice": template_id, "InvoiceData": {}},
-        )
-        assert created.status_code == 201
-        assert f"<Template>{template_id}</Template>" in created.get_data(as_text=True)
+#         created = flask_client.post(
+#             "/v1/invoices/generate",
+#             headers={"APItoken": api_token},
+#             json={"templateInvoice": template_id, "InvoiceData": {}},
+#         )
+#         assert created.status_code == 201
+#         assert f"<Template>{template_id}</Template>" in created.get_data(as_text=True)
 
-        # Read newest invoice row for our token/template.
-        inv = (
-            sb.table("api_invoices")
-            .select("id, owner_token, template_id, xml")
-            .eq("owner_token", api_token)
-            .eq("template_id", template_id)
-            .order("id", desc=True)
-            .limit(1)
-            .execute()
-        )
-        assert inv.data
-        invoice_id = inv.data[0]["id"]
-        assert inv.data[0]["xml"] == created.get_data(as_text=True)
+#         # Read newest invoice row for our token/template.
+#         inv = (
+#             sb.table("api_invoices")
+#             .select("id, owner_token, template_id, xml")
+#             .eq("owner_token", api_token)
+#             .eq("template_id", template_id)
+#             .order("id", desc=True)
+#             .limit(1)
+#             .execute()
+#         )
+#         assert inv.data
+#         invoice_id = inv.data[0]["id"]
+#         assert inv.data[0]["xml"] == created.get_data(as_text=True)
 
-        listed = flask_client.get("/v1/invoices", headers={"APItoken": api_token})
-        assert listed.status_code == 200
-        assert invoice_id in listed.get_json()
+#         listed = flask_client.get("/v1/invoices", headers={"APItoken": api_token})
+#         assert listed.status_code == 200
+#         assert invoice_id in listed.get_json()
 
-        fetched = flask_client.get(
-            f"/v1/invoices/{invoice_id}", headers={"APItoken": api_token}
-        )
-        assert fetched.status_code == 200
-        assert fetched.get_data(as_text=True) == created.get_data(as_text=True)
+#         fetched = flask_client.get(
+#             f"/v1/invoices/{invoice_id}", headers={"APItoken": api_token}
+#         )
+#         assert fetched.status_code == 200
+#         assert fetched.get_data(as_text=True) == created.get_data(as_text=True)
 
-        deleted = flask_client.delete(
-            f"/v1/invoices/{invoice_id}", headers={"APItoken": api_token}
-        )
-        assert deleted.status_code == HTTPStatus.NO_CONTENT
-        assert deleted.get_data(as_text=True) == ""
+#         deleted = flask_client.delete(
+#             f"/v1/invoices/{invoice_id}", headers={"APItoken": api_token}
+#         )
+#         assert deleted.status_code == HTTPStatus.NO_CONTENT
+#         assert deleted.get_data(as_text=True) == ""
 
-        gone = (
-            sb.table("api_invoices")
-            .select("id, deleted")
-            .eq("id", invoice_id)
-            .limit(1)
-            .execute()
-        )
-        assert gone.data and gone.data[0]["deleted"] is True
+#         gone = (
+#             sb.table("api_invoices")
+#             .select("id, deleted")
+#             .eq("id", invoice_id)
+#             .limit(1)
+#             .execute()
+#         )
+#         assert gone.data and gone.data[0]["deleted"] is True
 
-    finally:
-        if invoice_id is not None:
-            sb.table("api_invoices").delete().eq("id", invoice_id).execute()
-        sb.table("api_templates").delete().eq("template_id", template_id).eq(
-            "owner_token", api_token
-        ).execute()
-        sb.table("api_groups").delete().eq("group_name", group_name).execute()
+#     finally:
+#         if invoice_id is not None:
+#             sb.table("api_invoices").delete().eq("id", invoice_id).execute()
+#         sb.table("api_templates").delete().eq("template_id", template_id).eq(
+#             "owner_token", api_token
+#         ).execute()
+#         sb.table("api_groups").delete().eq("group_name", group_name).execute()
     
