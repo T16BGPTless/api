@@ -51,6 +51,12 @@ def test_is_valid_api_token_false_empty():
         assert is_valid_api_token(mock_supabase, "bad-token") is False
 
 
+def test_is_valid_api_token_none():
+    """Returns False if token is None."""
+    mock_supabase = MagicMock()
+    assert is_valid_api_token(mock_supabase, None) is False
+
+
 def test_is_valid_api_token_db_error():
     """Returns False if sb_execute fails or has an error."""
     mock_supabase = MagicMock()

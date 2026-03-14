@@ -9,12 +9,12 @@ from app.db.supabase_client import get_supabase
 VALID_DEV_TOKENS = {"dev-secret"}
 
 
-def sb_has_error(resp) -> bool:
+def sb_has_error(resp: dict) -> bool:
     """Check if the response has an error."""
     return getattr(resp, "error", None) is not None
 
 
-def sb_execute(builder):
+def sb_execute(builder: Client) -> dict | None:
     """Execute the builder."""
     try:
         return builder.execute()
@@ -22,7 +22,7 @@ def sb_execute(builder):
         return None
 
 
-def get_db():
+def get_db() -> Client | None:
     """Get a Supabase client, or None if misconfigured."""
     try:
         return get_supabase()
@@ -30,7 +30,7 @@ def get_db():
         return None
 
 
-def return_error(error: str):
+def return_error(error: str) -> tuple[Response, int]:
     """Return an error response."""
     # Use dict lookup table
     error_map = {
@@ -86,7 +86,7 @@ def require_dev_token_and_group() -> tuple[Client, str, Response | None]:
     return supabase, group_name, None
 
 
-def is_valid_api_token(supabase, api_token: str) -> bool:
+def is_valid_api_token(supabase: Client, api_token: str) -> bool:
     """Check if the API token is valid (exists in api_groups)."""
     if not api_token:
         return False
