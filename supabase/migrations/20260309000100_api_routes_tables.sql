@@ -54,15 +54,6 @@ CREATE TABLE IF NOT EXISTS public.api_groups (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Invoice templates referenced by templateInvoice
-CREATE TABLE IF NOT EXISTS public.api_templates (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  template_id text NOT NULL,
-  owner_token text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT api_templates_owner_template_unique UNIQUE (owner_token, template_id)
-);
-
 -- Invoices created via POST /v1/invoices/generate
 -- owner_token + template_id reference api_templates (enforced below after api_templates has its FK)
 CREATE TABLE IF NOT EXISTS public.api_invoices (
@@ -75,11 +66,6 @@ CREATE TABLE IF NOT EXISTS public.api_invoices (
   deleted boolean NOT NULL DEFAULT false
 );
 
--- Relationships: group -> templates -> invoices
-ALTER TABLE public.api_templates
-  ADD CONSTRAINT api_templates_owner_token_fkey
-  FOREIGN KEY (owner_token) REFERENCES public.api_groups(api_token) ON DELETE CASCADE;
-
 ALTER TABLE public.api_invoices
   ADD CONSTRAINT api_invoices_template_fkey
   FOREIGN KEY (owner_token, template_id)
@@ -88,17 +74,11 @@ ALTER TABLE public.api_invoices
 -- Enable RLS on all API tables. Policies below keep behaviour equivalent to
 -- "RLS off" while allowing you to tighten access later if needed.
 ALTER TABLE public.api_groups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.api_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.api_invoices ENABLE ROW LEVEL SECURITY;
 
 -- Allow all roles full access for now (development-friendly).
 -- You can later restrict these (e.g. TO service_role ONLY, or add predicates).
 CREATE POLICY api_groups_all ON public.api_groups
-  FOR ALL TO service_role
-  USING (true)
-  WITH CHECK (true);
-
-CREATE POLICY api_templates_all ON public.api_templates
   FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
@@ -114,12 +94,6 @@ VALUES
   ('dev', 'abc123'),
   ('other', 'other_token')
 ON CONFLICT DO NOTHING;
-
-INSERT INTO public.api_templates (template_id, owner_token)
-VALUES
-  ('template1', 'abc123'),
-  ('template2', 'other_token')
-ON CONFLICT ON CONSTRAINT api_templates_owner_template_unique DO NOTHING;
 
 -- Seed two invoices for token abc123 (IDs kept for compatibility with prior code).
 INSERT INTO public.api_invoices (id, owner_token, template_id, xml, invoice_data)
