@@ -37,6 +37,8 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
 
     body = request.get_json(silent=True) or {}
     template_id = body.get("templateInvoice")
+    if template_id is None:
+        template_id = ""
     invoice_data = body.get("InvoiceData")
 
     # Check template exists (404) and permission (403)
@@ -89,6 +91,8 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
                 "owner_token": api_token,
                 "template_id": template_id,
                 "xml": xml,
+                "deleted": False,
+                "invoice_data": invoice_data,
             }
         )
         created_resp = sb_execute(created)
