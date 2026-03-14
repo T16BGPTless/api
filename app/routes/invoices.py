@@ -37,14 +37,16 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
 
     body = request.get_json(silent=True) or {}
     template_id = body.get("templateInvoice")
+    if template_id is None:
+        template_id = ""
     invoice_data = body.get("InvoiceData")
 
     # Check template exists (404) and permission (403)
     if template_id:
         tmpl_rows = (
-            supabase.table("api_templates")
+            supabase.table("api_invoices")
             .select("owner_token")
-            .eq("template_id", template_id)
+            .eq("id", template_id)
         )
         tmpl_rows_resp = sb_execute(tmpl_rows)
         if tmpl_rows_resp is None or sb_has_error(tmpl_rows_resp):
@@ -57,27 +59,57 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
             return return_error("FORBIDDEN")
 
     try:
-        # If full invoice data is provided, build rich XML;
-        # otherwise fall back to a simple template-based XML so
-        # the basic integration test still passes.
-        if invoice_data:
-            xml = build_invoice_xml(invoice_data)
-        else:
-            xml = f"""
-                <Invoice>
-                <Template>{template_id}</Template>
-                </Invoice>
-                """.strip()
+        # If template exists, merge its invoice_data with the request's InvoiceData (request takes precedence)
+        if template_id:
+            template_resp = sb_execute(
+                supabase.table("api_invoices")
+                .select("invoice_data")
+                .eq("id", template_id)
+                .limit(1)
+            )
+            
+            # Extract the inner JSON data (default to empty dict if missing)
+            template_data = {}
+            if template_resp and template_resp.data:
+                template_data = template_resp.data[0].get("invoice_data") or {}
+
+            # Merge request data ON TOP of template data
+            if isinstance(template_data, dict):
+                merged_data = template_data.copy()
+            else:
+                merged_data = {}
+
+            if invoice_data:
+                merged_data.update(invoice_data)
+            
+            invoice_data = merged_data
 
         created = supabase.table("api_invoices").insert(
             {
                 "owner_token": api_token,
                 "template_id": template_id,
-                "xml": xml,
+                "xml": "None",
+                "deleted": True,
+                "invoice_data": invoice_data,
             }
         )
         created_resp = sb_execute(created)
         if created_resp is None or sb_has_error(created_resp):
+            return return_error("INTERNAL_SERVER_ERROR")
+        
+        invoice_id = created_resp.data[0].get("id")
+        if invoice_id is None:
+            return return_error("INTERNAL_SERVER_ERROR")
+        invoice_data["invoiceID"] = str(invoice_id)
+        xml = build_invoice_xml(invoice_data)
+        # Update the row with the generated XML and mark it as not deleted
+        updated = (
+            supabase.table("api_invoices")
+            .update({"xml": xml, "deleted": False})
+            .eq("id", invoice_id)
+        )
+        updated_resp = sb_execute(updated)
+        if updated_resp is None or sb_has_error(updated_resp):
             return return_error("INTERNAL_SERVER_ERROR")
 
     except ValueError as e:
@@ -190,8 +222,6 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if invoice.get("owner_token") != api_token:
         return return_error("FORBIDDEN")
 
-    deleted_xml = invoice.get("xml") or ""
-
     # Soft-delete: mark the row as deleted instead of removing it
     deleted = (
         supabase.table("api_invoices").update({"deleted": True}).eq("id", invoice_id)
@@ -200,8 +230,4 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if deleted_exec is None or sb_has_error(deleted_exec):
         return return_error("INTERNAL_SERVER_ERROR")
 
-    return Response(
-        deleted_xml,
-        mimetype="application/xml",
-        status=HTTPStatus.OK,
-    )
+    return "", HTTPStatus.NO_CONTENT

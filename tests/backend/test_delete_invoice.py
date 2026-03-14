@@ -29,7 +29,7 @@ class MockResponse:
 # ------------------------------- TEST CASES --------------------------------
 
 
-# CASE 1: SUCCESS (200 OK)
+# CASE 1: SUCCESS (204 NO_CONTENT)
 def test_delete_invoice_success(client):
     """Everything is correct: finds invoice, matches owner, and soft-deletes."""
     mock_xml = "<Invoice><ID>777</ID></Invoice>"
@@ -50,9 +50,7 @@ def test_delete_invoice_success(client):
     ):
         response = client.delete("/v1/invoices/777", headers={"APItoken": "my-token"})
 
-        assert response.status_code == HTTPStatus.OK
-        assert b"<ID>777</ID>" in response.data
-        assert response.mimetype == "application/xml"
+        assert response.status_code == HTTPStatus.NO_CONTENT
 
 
 # CASE 2: NOT FOUND - ALREADY DELETED (404)

@@ -1,12 +1,13 @@
 openapi: 3.0.3
 info:
-  title: GPTless Invoivcing API
+  title: GPTless Invoicing API
   version: 1.0.0
   description: |
     API for generating invoices. Get your API key [here](https://go.gptless.au/form).
 
 servers:
-  - url: https://api.example.com
+  - url: https://api.gptless.au
+  - url: https://preview.gptless.au
 
 tags:
   - name: Invoices
@@ -17,7 +18,7 @@ paths:
       tags: [Invoices]
       summary: Generate a standard invoice
       description: |
-        Creates a UBL XML invoice given the correct data. If given a previous invoiceID or template invoiceID, it will fill that data into the unspecified fields.
+        Creates a UBL XML invoice given the correct data. If given a previous invoiceID, it will fill that data into the unspecified fields. Please note that if a template is not used, all other fields must be filled, however if a template is used, only fields you wish to change have to be filled.
       
       parameters:
         - $ref: "#/components/parameters/APItoken"
@@ -200,17 +201,13 @@ paths:
     delete:
       tags: [Invoices]
       summary: Delete invoice
-      description: Given a valid invoiceID, deletes and returns the invoice XML
+      description: Given a valid invoiceID, deletes the invoice
       responses:
-        "200":
+        "204":
           description: |
-            **OK**
+            **No Content**
             
-            Returns the deleted UBL XML Invoice.
-          content:
-            application/xml:
-              schema:
-                $ref: "#/components/schemas/UBLInvoiceExample"
+            Invoice Deleted.
 
         "401":
           description: |
@@ -426,18 +423,11 @@ paths:
                 - groupName
                 
       responses:
-        "200":
+        "204":
           description: |
-            **OK**
+            **No Content**
             
-            returns an object with the deleted API token
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  APItoken:
-                    type: string
+            API Token revoked.
         
         "401":
           description: Unauthorized. Missing or invalid API token
@@ -502,14 +492,12 @@ components:
 
         templateInvoice:
           type: string
-          description: The InvoiceID to base unfilled fields off of. can be a template or a previous document 
+          description: The InvoiceID to base unfilled fields off of. can be a template or a previous document, no other fields are required if used. 
 
         InvoiceData:
           type: object
           description: Full invoice representation.
           properties:
-            invoiceID:
-              type: string
             supplier:
               type: object
 
