@@ -42,9 +42,9 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
     # Check template exists (404) and permission (403)
     if template_id:
         tmpl_rows = (
-            supabase.table("api_templates")
+            supabase.table("api_invoices")
             .select("owner_token")
-            .eq("template_id", template_id)
+            .eq("id", template_id)
         )
         tmpl_rows_resp = sb_execute(tmpl_rows)
         if tmpl_rows_resp is None or sb_has_error(tmpl_rows_resp):
@@ -60,20 +60,38 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
         # If full invoice data is provided, build rich XML;
         # otherwise fall back to a simple template-based XML so
         # the basic integration test still passes.
-        if invoice_data:
-            xml = build_invoice_xml(invoice_data)
-        else:
-            xml = f"""
-                <Invoice>
-                <Template>{template_id}</Template>
-                </Invoice>
-                """.strip()
+        if template_id:
+            template_resp = sb_execute(
+                supabase.table("api_invoices")
+                .select("invoice_data")
+                .eq("id", template_id)
+                .limit(1)
+            )
+            
+            # Extract the inner JSON data (default to empty dict if missing)
+            template_data = {}
+            if template_resp and template_resp.data:
+                template_data = template_resp.data[0].get("invoice_data") or {}
+
+            # Merge request data ON TOP of template data
+            if isinstance(template_data, dict):
+                merged_data = template_data.copy()
+            else:
+                merged_data = {}
+
+            if invoice_data:
+                merged_data.update(invoice_data)
+            
+            invoice_data = merged_data
+
+        xml = build_invoice_xml(invoice_data)
 
         created = supabase.table("api_invoices").insert(
             {
                 "owner_token": api_token,
                 "template_id": template_id,
                 "xml": xml,
+                "invoice_data": invoice_data,
             }
         )
         created_resp = sb_execute(created)
