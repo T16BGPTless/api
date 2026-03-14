@@ -5,8 +5,13 @@ from postgrest.exceptions import APIError
 from flask import jsonify, request, Response
 from supabase import Client
 from app.db.supabase_client import get_supabase
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
-VALID_DEV_TOKENS = {"dev-secret"}
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+VALID_DEV_TOKENS = os.getenv("VALID_DEV_TOKENS").split(",")
 
 
 def sb_has_error(resp) -> bool:

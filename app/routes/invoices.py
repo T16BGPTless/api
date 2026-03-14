@@ -228,4 +228,4 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if deleted_exec is None or sb_has_error(deleted_exec):
         return return_error("INTERNAL_SERVER_ERROR")
 
-    return "", HTTPStatus.OK
+    return "", HTTPStatus.NO_CONTENT

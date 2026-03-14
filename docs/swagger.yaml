@@ -202,9 +202,9 @@ paths:
       summary: Delete invoice
       description: Given a valid invoiceID, deletes the invoice
       responses:
-        "200":
+        "204":
           description: |
-            **OK**
+            **No Content**
             
             Invoice Deleted.
 
@@ -422,9 +422,9 @@ paths:
                 - groupName
                 
       responses:
-        "200":
+        "204":
           description: |
-            **OK**
+            **No Content**
             
             API Token revoked.
         
@@ -491,14 +491,12 @@ components:
 
         templateInvoice:
           type: string
-          description: The InvoiceID to base unfilled fields off of. can be a template or a previous document 
+          description: The InvoiceID to base unfilled fields off of. can be a template or a previous document, no other fields are required if used. 
 
         InvoiceData:
           type: object
           description: Full invoice representation.
           properties:
-            invoiceID:
-              type: string
             supplier:
               type: object
 
