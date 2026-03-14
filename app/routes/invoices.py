@@ -101,7 +101,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
         if invoice_id is None:
             return return_error("INTERNAL_SERVER_ERROR")
         invoice_data["invoiceID"] = invoice_id
-        xml = build_invoice_xml(template_id, invoice_data)
+        xml = build_invoice_xml(invoice_data)
         # Update the row with the generated XML
         updated = (
             supabase.table("api_invoices").update({"xml": xml}).eq("id", invoice_id)
