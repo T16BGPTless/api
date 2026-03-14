@@ -200,7 +200,7 @@ paths:
     delete:
       tags: [Invoices]
       summary: Delete invoice
-      description: Given a valid invoiceID, deletes and returns the invoice XML
+      description: Given a valid invoiceID, deletes the invoice
       responses:
         "200":
           description: |
