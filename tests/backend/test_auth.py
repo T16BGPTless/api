@@ -295,7 +295,7 @@ def test_revoke_success(client):
             headers={"APIdevToken": "dev-secret"},
         )
 
-    assert resp.status_code == HTTPStatus.OK
+    assert resp.status_code == HTTPStatus.NO_CONTENT
 
 def test_revoke_group_not_found(client):
     """Revoke for unknown group returns 404."""

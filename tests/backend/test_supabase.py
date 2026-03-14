@@ -3,6 +3,7 @@
 from pathlib import Path
 import sys
 import uuid
+from http import HTTPStatus
 
 import pytest
 
@@ -108,7 +109,8 @@ def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
         deleted = flask_client.delete(
             f"/v1/invoices/{invoice_id}", headers={"APItoken": api_token}
         )
-        assert deleted.status_code == 200
+        assert deleted.status_code == HTTPStatus.NO_CONTENT
+        assert deleted.get_data(as_text=True) == ""
 
         gone = (
             sb.table("api_invoices")
@@ -116,7 +118,6 @@ def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
             .eq("id", invoice_id)
             .limit(1)
             .execute()
-        )
         assert gone.data and gone.data[0]["deleted"] is True
 
     finally:
