@@ -118,6 +118,7 @@ def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
             .eq("id", invoice_id)
             .limit(1)
             .execute()
+        )
         assert gone.data and gone.data[0]["deleted"] is True
 
     finally:
@@ -127,3 +128,4 @@ def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
             "owner_token", api_token
         ).execute()
         sb.table("api_groups").delete().eq("group_name", group_name).execute()
+    
