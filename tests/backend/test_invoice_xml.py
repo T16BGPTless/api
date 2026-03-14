@@ -1,5 +1,6 @@
 """Test the invoice XML builder."""
 
+import json
 import pytest
 from app.services.invoice_xml import build_invoice_xml
 
@@ -25,7 +26,7 @@ def test_build_invoice_xml_success():
         ],
     }
 
-    xml = build_invoice_xml(data)
+    xml = build_invoice_xml(json.dumps(data))
 
     assert "<cbc:ID>123</cbc:ID>" in xml
     assert "invoice name" in xml
@@ -54,7 +55,7 @@ def test_total_must_match_lines():
     }
 
     with pytest.raises(ValueError):
-        build_invoice_xml(data)
+        build_invoice_xml(json.dumps(data))
 
 
 def test_missing_invoice_id():
@@ -78,7 +79,7 @@ def test_missing_invoice_id():
     }
 
     with pytest.raises(ValueError):
-        build_invoice_xml(data)
+        build_invoice_xml(json.dumps(data))
 
 
 def test_invoices_template():
@@ -102,7 +103,7 @@ def test_invoices_template():
         ],
     }
 
-    xml = build_invoice_xml(data)
+    xml = build_invoice_xml(json.dumps(data))
 
     assert "<cbc:ID>456</cbc:ID>" in xml
     assert "template supplier" in xml
