@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: GPTless Invoivcing API
+  title: GPTless Invoicing API
   version: 1.0.0
   description: |
     API for generating invoices. Get your API key [here](https://go.gptless.au/form).
