@@ -100,6 +100,7 @@ def revoke():  # pylint: disable=too-many-return-statements
         supabase.table("api_groups")
         .select("api_token")
         .eq("group_name", group_name)
+        .eq("deleted", False)
         .limit(1)
     )
     existing_resp = sb_execute(existing)
