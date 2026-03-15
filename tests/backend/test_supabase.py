@@ -209,6 +209,7 @@ def test_order_xml_to_json_stored_then_to_invoice_xml(flask_client, sb):
             "/v1/orders/convert",
             data=order_xml,
             content_type="application/xml",
+            headers={"APItoken": api_token},
         )
         assert convert_resp.status_code == 200, convert_resp.get_data(as_text=True)
         order_json = convert_resp.get_json()

@@ -1,6 +1,7 @@
 """Tests for order conversion route (XML to JSON)."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from flask import Flask
@@ -11,11 +12,15 @@ from app.routes.orders import orders_bp
 @pytest.fixture
 def client():
     """Flask test client using only the orders blueprint (no Supabase required)."""
-    app = Flask(__name__)
-    app.config["TESTING"] = True
-    app.register_blueprint(orders_bp)
-    with app.test_client() as c:
-        yield c
+    # Mock require_api_token so we don't need a real DB or token for unit tests
+    with patch("app.routes.orders.require_api_token") as mock_auth:
+        mock_auth.return_value = (None, "mock_token", None)
+
+        app = Flask(__name__)
+        app.config["TESTING"] = True
+        app.register_blueprint(orders_bp)
+        with app.test_client() as c:
+            yield c
 
 
 # Minimal UBL-like Order XML (no default namespace to avoid key quirks)
