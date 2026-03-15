@@ -62,10 +62,13 @@ jobs:
       - name: Run pgTAP database tests
         run: supabase test db
 
-      - name: Run pytest
+      - name: Run pytest with coverage
         env:
           VALID_DEV_TOKENS: ${{ secrets.VALID_DEV_TOKENS }}
-        run: PYTHONPATH=. pytest tests/backend -v
+        run: PYTHONPATH=. coverage run -m pytest tests/backend -v
+
+      - name: Coverage report
+        run: coverage report -m
 
       - name: Run pylint
         run: pylint app/**/*.py --errors-only
