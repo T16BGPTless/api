@@ -1,7 +1,8 @@
 """Convert UBL Order XML to JSON for storage."""
 
-from xml.parsers.expat import ExpatError
+from defusedexpat import ExpatError
 
+import defusedexpat
 import xmltodict
 
 
@@ -22,6 +23,7 @@ def order_xml_to_json(xml_string: str) -> dict:
     if not xml_string or not xml_string.strip():
         raise ValueError("Order XML must not be empty")
     try:
-        return xmltodict.parse(xml_string.strip())
+        # Use a hardened XML parser to mitigate entity expansion and related attacks.
+        return xmltodict.parse(xml_string.strip(), expat=defusedexpat)
     except ExpatError as e:
         raise ValueError(f"Invalid XML: {e!s}") from e
