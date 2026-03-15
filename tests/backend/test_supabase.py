@@ -181,3 +181,85 @@ def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
         if template_invoice_id is not None:
             sb.table("api_invoices").delete().eq("id", template_invoice_id).execute()
         sb.table("api_groups").delete().eq("group_name", group_name).execute()
+
+
+def test_order_xml_to_json_stored_then_to_invoice_xml(flask_client, sb):
+    """Integration: user provides order XML -> convert to JSON -> use as InvoiceData -> generate invoice XML."""
+    from app.services.order_to_invoice import order_json_to_invoice_data
+
+    example_path = Path(__file__).resolve().parents[2] / "docs" / "orderdocexample.xml"
+    if not example_path.exists():
+        pytest.skip("docs/orderdocexample.xml not found")
+
+    order_xml = example_path.read_text(encoding="utf-8")
+    group_name = f"pytest-order-{uuid.uuid4().hex}"
+    api_token = uuid.uuid4().hex
+    invoice_id = None
+
+    try:
+        group = (
+            sb.table("api_groups")
+            .insert({"group_name": group_name, "api_token": api_token})
+            .execute()
+        )
+        group_id = group.data[0]["id"]
+
+        # 1. User provides order XML -> convert to JSON (stored in variable, then used as payload)
+        convert_resp = flask_client.post(
+            "/v1/orders/convert",
+            data=order_xml,
+            content_type="application/xml",
+            headers={"APItoken": api_token},
+        )
+        assert convert_resp.status_code == 200, convert_resp.get_data(as_text=True)
+        order_json = convert_resp.get_json()
+
+        # 2. Map order JSON to InvoiceData shape and send to generate
+        invoice_data = order_json
+        assert "supplier" in invoice_data["InvoiceData"] and "customer" in invoice_data["InvoiceData"]
+        assert invoice_data["InvoiceData"]["supplier"].get("name") and invoice_data["InvoiceData"]["customer"].get(
+            "name"
+        )
+        assert invoice_data["InvoiceData"]["lines"]
+
+        generate_resp = flask_client.post(
+            "/v1/invoices/generate",
+            headers={"APItoken": api_token},
+            json=invoice_data,
+        )
+        if generate_resp.status_code == 500:
+            body = generate_resp.get_json() or {}
+            msg = body.get("message", "")
+            if "Database error" in msg or "SUPABASE" in msg:
+                pytest.skip(
+                    "App could not reach database during request (ensure SUPABASE_URL and "
+                    "SUPABASE_SERVICE_ROLE_KEY are set for the process running the app)"
+                )
+        assert generate_resp.status_code == 201, generate_resp.get_data(as_text=True)
+        invoice_xml_body = generate_resp.get_data(as_text=True)
+        assert "<?xml" in invoice_xml_body
+        assert "Invoice" in invoice_xml_body
+        # Order example has IYT Corporation (buyer) and Consortial (seller)
+        assert (
+            "IYT" in invoice_xml_body
+            or "Consortial" in invoice_xml_body
+            or "Corporation" in invoice_xml_body
+        )
+
+        # 3. Verify invoice was stored: list and get
+        list_resp = flask_client.get("/v1/invoices", headers={"APItoken": api_token})
+        assert list_resp.status_code == 200
+        ids = list_resp.get_json()
+        assert isinstance(ids, list)
+        invoice_id = next((i for i in ids if i), None)
+        if invoice_id is not None:
+            get_resp = flask_client.get(
+                f"/v1/invoices/{invoice_id}",
+                headers={"APItoken": api_token},
+            )
+            assert get_resp.status_code == 200
+            assert get_resp.get_data(as_text=True) == invoice_xml_body
+    finally:
+        if invoice_id is not None:
+            sb.table("api_invoices").delete().eq("id", invoice_id).execute()
+        sb.table("api_groups").delete().eq("group_name", group_name).execute()
