@@ -20,8 +20,8 @@ An API that generates standardised UBL invoices. Clients register to obtain an A
 
 ### Order documents → Invoice data
 
-- **Convert order XML to JSON**: A helper endpoint accepts a UBL Order XML document and converts it into structured JSON.
-- **Map order JSON to `InvoiceData`**: A pure-Python service maps the generic XML-to-JSON shape into the `InvoiceData` structure that `build_invoice_xml` expects, so orders can drive invoice creation without hand-written JSON.
+- **Convert order XML to invoice JSON**: A helper endpoint accepts a UBL Order XML document and converts it into an `InvoiceData` JSON payload (supplier, customer, totals, lines).
+- **Store JSON in the database**: Your application (or this service) can persist that `InvoiceData` JSON alongside other business data. When you later call the invoice generation endpoint, the JSON is read from the database and turned into UBL invoice XML.
 
 ### Data and storage
 
@@ -58,12 +58,12 @@ Open **[https://docs.gptless.au](https://docs.gptless.au)** for full API specs (
 
 2. **(optional) convert an order into invoice-friendly JSON**:
 - `POST /v1/orders/convert` with a raw UBL Order XML document in the body (Content-Type: `application/xml` or `text/xml`).
-- Response is `200` with a JSON representation of the order (namespaced keys such as `cbc:ID`, `cac:OrderLine`, etc.).
-- In backend integrations you can then call the `order_json_to_invoice_data` service with that JSON to obtain an `InvoiceData` payload for `/v1/invoices/generate`.
+- Response is `200` with an `InvoiceData` JSON object (the same shape accepted by `/v1/invoices/generate`).
+- Typically you store this JSON in your own database (or reuse the `invoice_data` column in `api_invoices`) and later pass it to the invoice generation endpoint.
 
 3. **Create an invoice**:
-   - `POST /v1/invoices/generate` with header `APItoken: <your-token>` and body with `InvoiceData` and/or `templateInvoice` as needed.
-   - Response is `201` with UBL XML in the body.
+   - `POST /v1/invoices/generate` with header `APItoken: <your-token>` and body with `InvoiceData` (for example, the JSON you previously stored from step 2) and/or `templateInvoice` as needed.
+   - The service validates and stores the invoice (including the JSON `invoice_data` and the generated XML) and returns **201** with the UBL XML in the body.
 
 4. **List / fetch / soft-delete**:
    - `GET /v1/invoices` — list your invoice IDs.
