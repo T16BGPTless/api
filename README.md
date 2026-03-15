@@ -20,7 +20,7 @@ An API that generates standardised UBL invoices. Clients register to obtain an A
 
 ### Order documents → Invoice data
 
-- **Convert order XML to invoice JSON**: A helper endpoint accepts a UBL Order XML document and converts it into an `InvoiceData` JSON payload (supplier, customer, totals, lines).
+- **Convert order XML to invoice JSON**: An authenticated helper endpoint accepts a UBL Order XML document and converts it into an `InvoiceData` JSON payload (supplier, customer, totals, lines). As with all API calls, you must include a valid `APItoken` in the `APItoken` header.
 - **Store JSON in the database**: Your application (or this service) can persist that `InvoiceData` JSON alongside other business data. When you later call the invoice generation endpoint, the JSON is read from the database and turned into UBL invoice XML.
 
 ### Data and storage
