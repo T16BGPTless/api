@@ -18,6 +18,11 @@ An API that generates standardised UBL invoices. Clients register to obtain an A
 - **Get**: GET by ID returns the stored UBL XML for an invoice you own.
 - **Delete**: Soft-delete only — the row is marked deleted and no longer appears in list/get, but is not removed from the database.
 
+### Order documents → Invoice data
+
+- **Convert order XML to JSON**: A helper endpoint accepts a UBL Order XML document and converts it into structured JSON.
+- **Map order JSON to `InvoiceData`**: A pure-Python service maps the generic XML-to-JSON shape into the `InvoiceData` structure that `build_invoice_xml` expects, so orders can drive invoice creation without hand-written JSON.
+
 ### Data and storage
 
 - **Backend**: Python 3 with Flask. **Database**: Supabase (PostgreSQL). Tables include `api_groups` (group name, API token) and `api_invoices` (owner, template_id, xml, invoice_data, deleted flag).
@@ -51,9 +56,10 @@ Open **[https://docs.gptless.au](https://docs.gptless.au)** for full API specs (
    - Response includes `APItoken`; store it and use it for invoice calls.
    - For the users of the API this is automatically done by filling out the startup form at https://go.gptless.au/form which will automatically call our server, generate the token and email it out to them.
 
-2. **(optional) convert an order into invoice data**:
-   - `POST /v1/orders/convert` with header `APItoken: <your-token>` and body with a raw order XML (Content-Type: application/xml or text/xml).
-   - Response is `200` with the required JSON `InvoiceData` to generate an invoice.
+2. **(optional) convert an order into invoice-friendly JSON**:
+- `POST /v1/orders/convert` with a raw UBL Order XML document in the body (Content-Type: `application/xml` or `text/xml`).
+- Response is `200` with a JSON representation of the order (namespaced keys such as `cbc:ID`, `cac:OrderLine`, etc.).
+- In backend integrations you can then call the `order_json_to_invoice_data` service with that JSON to obtain an `InvoiceData` payload for `/v1/invoices/generate`.
 
 3. **Create an invoice**:
    - `POST /v1/invoices/generate` with header `APItoken: <your-token>` and body with `InvoiceData` and/or `templateInvoice` as needed.
@@ -111,12 +117,15 @@ Tests that need a real Supabase (e.g. `test_supabase.py` integration tests) requ
 | `app/app.py` | Flask app, blueprint registration, home redirect. |
 | `app/routes/auth.py` | Register, reset, revoke (group + API token). |
 | `app/routes/invoices.py` | Generate, list, get, delete invoices. |
+| `app/routes/orders.py` | Convert UBL Order XML to JSON. |
 | `app/routes/helpers.py` | Shared helpers (DB, errors, dev-token validation). |
 | `app/services/invoice_xml.py` | UBL invoice build and validation. |
+| `app/services/order_xml.py` | Low-level XML→dict conversion for UBL Orders. |
+| `app/services/order_to_invoice.py` | Map order JSON into `InvoiceData` for invoice generation. |
 | `app/db/supabase_client.py` | Supabase client singleton. |
 | `supabase/migrations/` | SQL migrations for `api_groups`, `api_invoices`, RLS. |
-| `supabase/tests/` | pgTAP database tests. |
-| `tests/backend/` | Pytest tests (auth, invoices, helpers, XML, app). |
+| `supabase/tests/` | pgTAP database tests for the schema. |
+| `tests/backend/` | Pytest tests (auth, invoices, orders, helpers, XML, app, Supabase integration). |
 | `.github/workflows/ci.yml` | CI: Supabase CLI, db tests, pytest + coverage, pylint. |
 
 ---
