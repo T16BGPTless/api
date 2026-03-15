@@ -53,6 +53,7 @@ def generate_invoice():  # pylint: disable=too-many-return-statements,too-many-l
     if invoice_data is None:
         invoice_data = {}
 
+    group_id = None
     # Check template exists (404) and permission (403)
     if template_id:
         tmpl_rows = (
@@ -99,9 +100,10 @@ def generate_invoice():  # pylint: disable=too-many-return-statements,too-many-l
 
             invoice_data = merged_data
 
-        group_id, err = get_group_id_from_token(supabase, api_token)
-        if err is not None:
-            return err
+        if group_id is None:
+            group_id, err = get_group_id_from_token(supabase, api_token)
+            if err is not None:
+                return err
 
         created = supabase.table("api_invoices").insert(
             {
