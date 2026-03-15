@@ -216,11 +216,11 @@ def test_order_xml_to_json_stored_then_to_invoice_xml(flask_client, sb):
 
         # 2. Map order JSON to InvoiceData shape and send to generate
         invoice_data = order_json
-        assert "supplier" in invoice_data and "customer" in invoice_data
-        assert invoice_data["supplier"].get("name") and invoice_data["customer"].get(
+        assert "supplier" in invoice_data["InvoiceData"] and "customer" in invoice_data["InvoiceData"]
+        assert invoice_data["InvoiceData"]["supplier"].get("name") and invoice_data["InvoiceData"]["customer"].get(
             "name"
         )
-        assert invoice_data["lines"]
+        assert invoice_data["InvoiceData"]["lines"]
 
         generate_resp = flask_client.post(
             "/v1/invoices/generate",
