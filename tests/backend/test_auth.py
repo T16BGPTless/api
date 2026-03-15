@@ -330,6 +330,25 @@ def test_revoke_group_not_found(client, valid_dev_token):
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
+def test_revoke_api_token_not_found(client, valid_dev_token):
+    """Revoke when group exists but api_token is already None returns 404."""
+    mock_supabase = MagicMock()
+    existing_resp = MockResponse(data=[{"api_token": None}])
+
+    with (
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
+        patch("app.routes.auth.sb_execute", return_value=existing_resp),
+        patch("app.routes.auth.sb_has_error", return_value=False),
+    ):
+        resp = client.delete(
+            "/v1/auth/revoke",
+            json={"groupName": "my-group"},
+            headers={"APIdevToken": valid_dev_token},
+        )
+
+    assert resp.status_code == HTTPStatus.NOT_FOUND
+
+
 def test_revoke_get_db_failure(client, valid_dev_token):
     """If get_db() returns None for revoke, return 500."""
     with patch("app.routes.helpers.get_db", return_value=None):
