@@ -57,9 +57,9 @@ Open **[https://docs.gptless.au](https://docs.gptless.au)** for full API specs (
    - For the users of the API this is automatically done by filling out the startup form at https://go.gptless.au/form which will automatically call our server, generate the token and email it out to them.
 
 2. **(optional) convert an order into invoice-friendly JSON**:
-- `POST /v1/orders/convert` with a raw UBL Order XML document in the body (Content-Type: `application/xml` or `text/xml`).
-- Response is `200` with an `InvoiceData` JSON object (the same shape accepted by `/v1/invoices/generate`).
-- Typically you store this JSON in your own database (or reuse the `invoice_data` column in `api_invoices`) and later pass it to the invoice generation endpoint.
+   - `POST /v1/orders/convert` with header `APItoken: <your-token>` and a raw UBL Order XML document in the body (Content-Type: `application/xml` or `text/xml`).
+   - Response is `200` with an `InvoiceData` JSON object (the same shape accepted by `/v1/invoices/generate`).
+   - Typically you store this JSON in your own database (or reuse the `invoice_data` column in `api_invoices`) and later pass it to the invoice generation endpoint.
 
 3. **Create an invoice**:
    - `POST /v1/invoices/generate` with header `APItoken: <your-token>` and body with `InvoiceData` (for example, the JSON you previously stored from step 2) and/or `templateInvoice` as needed.
