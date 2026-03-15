@@ -32,13 +32,17 @@ class MockResponse:
 # CASE 1: SUCCESS (200 OK)
 def test_list_invoices_success(client):
     """Everything is correct: returns a list of invoice IDs."""
-    # Simulating a database returning three invoice IDs
+    # First sb_execute: api_groups select (get_group_id_from_token); second: api_invoices
+    mock_group = MockResponse(data=[{"id": "group-uuid"}])
     mock_db_data = MockResponse(data=[{"id": 101}, {"id": 102}, {"id": 105}])
 
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-        patch("app.routes.invoices.sb_execute", return_value=mock_db_data),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_group, mock_db_data],
+        ),
         patch("app.routes.invoices.sb_has_error", return_value=False),
     ):
         response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
@@ -50,12 +54,16 @@ def test_list_invoices_success(client):
 # CASE 2: SUCCESS - NO INVOICES (200 OK)
 def test_list_invoices_empty(client):
     """Valid token, but the user has no invoices. Should return empty list."""
+    mock_group = MockResponse(data=[{"id": "group-uuid"}])
     mock_db_data = MockResponse(data=[])
 
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-        patch("app.routes.invoices.sb_execute", return_value=mock_db_data),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_group, mock_db_data],
+        ),
         patch("app.routes.invoices.sb_has_error", return_value=False),
     ):
         response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
@@ -90,25 +98,47 @@ def test_list_invoices_invalid_token(client):
 
 # CASE 6: DATABASE EXECUTION FAILURE (500)
 def test_list_invoices_db_execution_error(client):
-    """sb_execute returns None (e.g. database timeout)."""
+    """sb_execute returns None on invoices query (e.g. database timeout)."""
+    mock_group = MockResponse(data=[{"id": "group-uuid"}])
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-        patch("app.routes.invoices.sb_execute", return_value=None),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_group, None],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
     ):
         response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
+# CASE 6b: UNAUTHORIZED - get_group_id_from_token fails (lines 35, 157)
+def test_list_invoices_group_lookup_fails(client):
+    """When get_group_id_from_token fails (e.g. api_groups select returns None), return 401."""
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch("app.routes.invoices.sb_execute", return_value=None),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
+
+
 # CASE 7: SUPABASE ERROR RESPONSE (500)
 def test_list_invoices_supabase_has_error(client):
-    """Supabase returns an error object."""
+    """Supabase returns an error on invoices query."""
+    mock_group = MockResponse(data=[{"id": "group-uuid"}])
     mock_err = MockResponse(error="Database select failed")
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-        patch("app.routes.invoices.sb_execute", return_value=mock_err),
-        patch("app.routes.invoices.sb_has_error", return_value=True),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_group, mock_err],
+        ),
+        patch("app.routes.invoices.sb_has_error", side_effect=[False, True]),
     ):
         response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR

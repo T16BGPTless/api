@@ -28,12 +28,13 @@ def require_api_token():
 
 
 def get_group_id_from_token(supabase, api_token):
-    """Helper to get group name from API token."""
+    """Resolve API token to group id. Returns (group_id, None) or (None, error_response)."""
     resp = supabase.table("api_groups").select("id").eq("api_token", api_token).limit(1)
     resp_exec = sb_execute(resp)
     if resp_exec is None or sb_has_error(resp_exec) or not resp_exec.data:
-        return return_error("UNAUTHORIZED")
-    return resp_exec.data[0].get("id")
+        return None, return_error("UNAUTHORIZED")
+    group_id = resp_exec.data[0].get("id")
+    return group_id, None
 
 
 # ------------------- POST /v1/invoice/generate  -------------------
@@ -64,7 +65,9 @@ def generate_invoice():  # pylint: disable=too-many-return-statements,too-many-l
         if not tmpl_rows_resp.data:
             return return_error("NOT_FOUND")
 
-        group_id = get_group_id_from_token(supabase, api_token)
+        group_id, err = get_group_id_from_token(supabase, api_token)
+        if err is not None:
+            return err
 
         if not any(row.get("owner_token") == group_id for row in tmpl_rows_resp.data):
             return return_error("FORBIDDEN")
@@ -96,7 +99,9 @@ def generate_invoice():  # pylint: disable=too-many-return-statements,too-many-l
 
             invoice_data = merged_data
 
-        group_id = get_group_id_from_token(supabase, api_token)
+        group_id, err = get_group_id_from_token(supabase, api_token)
+        if err is not None:
+            return err
 
         created = supabase.table("api_invoices").insert(
             {
@@ -147,7 +152,9 @@ def list_invoices():
     if error is not None:
         return error
 
-    group_id = get_group_id_from_token(supabase, api_token)
+    group_id, err = get_group_id_from_token(supabase, api_token)
+    if err is not None:
+        return err
 
     # Get invoices owned by this API token, not deleted
     resp = (
@@ -196,7 +203,9 @@ def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if invoice.get("deleted"):
         return return_error("NOT_FOUND")
 
-    group_id = get_group_id_from_token(supabase, api_token)
+    group_id, err = get_group_id_from_token(supabase, api_token)
+    if err is not None:
+        return err
 
     # Check permission (403)
     if invoice.get("owner_token") != group_id:
@@ -236,7 +245,9 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if invoice.get("deleted"):
         return return_error("NOT_FOUND")
 
-    group_id = get_group_id_from_token(supabase, api_token)
+    group_id, err = get_group_id_from_token(supabase, api_token)
+    if err is not None:
+        return err
 
     # Check permission (403)
     if invoice.get("owner_token") != group_id:

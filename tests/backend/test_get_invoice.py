@@ -142,6 +142,31 @@ def test_get_invoice_deleted(client):
         assert response.status_code == HTTPStatus.NOT_FOUND
 
 
+# CASE 8b: UNAUTHORIZED - get_group_id_from_token fails (lines 35, 208)
+def test_get_invoice_group_lookup_fails(client):
+    """Invoice fetch succeeds but get_group_id_from_token fails (e.g. api_groups returns None)."""
+    mock_invoice = MockResponse(
+        data=[
+            {
+                "owner_token": 10,
+                "xml": "<Invoice/>",
+                "deleted": False,
+            }
+        ]
+    )
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_invoice, None],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.get("/v1/invoices/123", headers={"APItoken": "valid-token"})
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
+
+
 # CASE 9: FORBIDDEN - WRONG OWNER (403)
 def test_get_invoice_wrong_owner(client):
     """The invoice exists but belongs to a different owner_token."""

@@ -149,6 +149,25 @@ def test_delete_invoice_initial_query_error(client):
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
+# CASE 8b: UNAUTHORIZED - get_group_id_from_token fails (lines 35, 250)
+def test_delete_invoice_group_lookup_fails(client):
+    """Existing invoice fetch succeeds but get_group_id_from_token fails."""
+    mock_existing = MockResponse(
+        data=[{"owner_token": 10, "xml": "<Invoice/>", "deleted": False}]
+    )
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_existing, None],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
+
+
 # CASE 9: INITIAL QUERY SUPABASE ERROR (500)
 def test_delete_invoice_initial_supabase_error(client):
     """The select query runs but Supabase returns an error flag."""
