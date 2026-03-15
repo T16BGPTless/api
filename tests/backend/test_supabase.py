@@ -9,19 +9,6 @@ from http import HTTPStatus
 import pytest
 from postgrest.exceptions import APIError
 
-
-@pytest.fixture
-def valid_dev_token():
-    """Token from VALID_DEV_TOKENS env (required for auth tests)."""
-    raw = os.environ.get("VALID_DEV_TOKENS", "").strip()
-    token = raw.split(",")[0].strip() if raw else ""
-    if not token:
-        pytest.skip(
-            "VALID_DEV_TOKENS not set (set in CI via secrets or in .env locally)"
-        )
-    return token
-
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
