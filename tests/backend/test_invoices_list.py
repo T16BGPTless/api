@@ -1,9 +1,9 @@
 """List invoices tests."""
 
-import pytest
-from unittest.mock import patch, MagicMock
-from app.app import app
 from http import HTTPStatus
+from unittest.mock import patch, MagicMock
+import pytest
+from app.app import app
 
 
 # --------------------------------- FIXTURE ---------------------------------
@@ -74,6 +74,7 @@ def test_list_invoices_empty(client):
 
 # CASE 3: DATABASE INITIALIZATION FAILURE (500)
 def test_list_invoices_db_connection_fail(client):
+    """Database connection fails (e.g. database timeout)."""
     with patch("app.routes.invoices.get_db", return_value=None):
         response = client.get("/v1/invoices", headers={"APItoken": "valid-token"})
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
@@ -81,6 +82,7 @@ def test_list_invoices_db_connection_fail(client):
 
 # CASE 4: UNAUTHORIZED - MISSING HEADER (401)
 def test_list_invoices_missing_header(client):
+    """Missing API token header (401 Unauthorized)."""
     with patch("app.routes.invoices.get_db", return_value=MagicMock()):
         response = client.get("/v1/invoices")
         assert response.status_code == HTTPStatus.UNAUTHORIZED
@@ -88,6 +90,7 @@ def test_list_invoices_missing_header(client):
 
 # CASE 5: UNAUTHORIZED - INVALID TOKEN (401)
 def test_list_invoices_invalid_token(client):
+    """Invalid API token (401 Unauthorized)."""
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=False),

@@ -1,9 +1,9 @@
 """Get invoice tests."""
 
-import pytest
 from unittest.mock import patch, MagicMock
-from app.app import app
 from http import HTTPStatus
+import pytest
+from app.app import app
 
 
 # --------------------------------- FIXTURE ---------------------------------

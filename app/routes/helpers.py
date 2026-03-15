@@ -1,8 +1,9 @@
 """Helper functions for the routes."""
 
+import logging
 import os
-from pathlib import Path
 from http import HTTPStatus
+from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import jsonify, request, Response
@@ -13,11 +14,18 @@ from app.db.supabase_client import get_supabase
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
+# VALID_DEV_TOKENS: set via env only (never in code) so secrets stay out of the repo.
+# Local dev: add VALID_DEV_TOKENS to .env (comma-separated). CI: use GitHub Secrets.
+# When unset or empty, auth endpoints return 403 FORBIDDEN.
 raw = os.getenv("VALID_DEV_TOKENS")
-if raw and raw.strip():
-    VALID_DEV_TOKENS = frozenset(t.strip() for t in raw.split(",") if t.strip())
-else:
+if raw is None or not raw.strip():
+    logging.warning(
+        "VALID_DEV_TOKENS is unset or empty. Auth endpoints (register/reset/revoke) "
+        "will return 403. For local development, add VALID_DEV_TOKENS to your .env file."
+    )
     VALID_DEV_TOKENS = frozenset()
+else:
+    VALID_DEV_TOKENS = frozenset(t.strip() for t in raw.split(",") if t.strip())
 
 
 def sb_has_error(resp) -> bool:

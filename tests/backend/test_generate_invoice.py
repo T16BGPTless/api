@@ -1,9 +1,9 @@
 """Generate invoice tests."""
 
-import pytest
 from unittest.mock import patch, MagicMock
-from app.app import app
 from http import HTTPStatus
+import pytest
+from app.app import app
 
 
 # ------------------------------ MOCK SUPABASE ------------------------------
@@ -111,6 +111,7 @@ def test_generate_invoice_success_rich_data(client):
 
 # CASE 3: NOT FOUND - Template Doesn't Exist (404)
 def test_generate_invoice_template_not_found(client):
+    """Template doesn't exist (sb_execute returns empty list)."""
     mock_tmpl_check = MockResponse(data=[])  # No rows found
     payload = {"templateInvoice": "NONEXISTENT"}
 
@@ -127,6 +128,7 @@ def test_generate_invoice_template_not_found(client):
 
 # CASE 4: FORBIDDEN - Template Owned by Someone Else (403)
 def test_generate_invoice_template_wrong_owner(client):
+    """Template owned by someone else (sb_execute returns owner_token != token)."""
     mock_tmpl_check = MockResponse(data=[{"owner_token": "someone-else"}])
     payload = {"templateInvoice": "T123"}
 
@@ -174,6 +176,7 @@ def test_generate_invoice_xml_error(client):
 
 # CASE 6: UNAUTHORIZED (401)
 def test_generate_invoice_unauthorized(client):
+    """Invalid token (sb_execute returns None)."""
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=False),
@@ -282,7 +285,8 @@ def test_generate_invoice_template_supabase_error(client):
 
 # CASE 11: UNAUTHORIZED - get_group_id_from_token fails with template (line 70)
 def test_generate_invoice_group_lookup_fails_with_template(client):
-    """With template_id set, first get_group_id_from_token fails (e.g. api_groups select returns None)."""
+    """With template_id set, first get_group_id_from_token fails
+    (e.g. api_groups select returns None)."""
     mock_tmpl_check = MockResponse(data=[{"owner_token": 10}])
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
