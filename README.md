@@ -49,12 +49,17 @@ Open **[https://docs.gptless.au](https://docs.gptless.au)** for full API specs (
 1. **Register a group** (requires a valid developer token in `APIdevToken` header):
    - `POST /v1/auth/register` with body `{"groupName": "my-app"}`.
    - Response includes `APItoken`; store it and use it for invoice calls.
+   - For the users of the API this is automatically done by filling out the startup form at https://go.gptless.au/form which will automatically call our server, generate the token and email it out to them.
 
-2. **Create an invoice**:
+2. **(optional) convert an order into invoice data**:
+   - `POST /v1/orders/convert` with header `APItoken: <your-token>` and body with a raw order XML (Content-Type: application/xml or text/xml).
+   - Response is `200` with the required JSON `InvoiceData` to generate an invoice.
+
+3. **Create an invoice**:
    - `POST /v1/invoices/generate` with header `APItoken: <your-token>` and body with `InvoiceData` and/or `templateInvoice` as needed.
    - Response is `201` with UBL XML in the body.
 
-3. **List / fetch / soft-delete**:
+4. **List / fetch / soft-delete**:
    - `GET /v1/invoices` — list your invoice IDs.
    - `GET /v1/invoices/<id>` — get UBL XML for one invoice.
    - `DELETE /v1/invoices/<id>` — soft-delete an invoice.
