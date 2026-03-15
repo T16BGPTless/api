@@ -178,9 +178,9 @@ def order_json_to_invoice_data(order_dict: dict, due_date: str = None) -> dict:
         lines_out.append(
             {
                 "lineId": ln["lineId"],
-                "quantity": float(ln["quantity"]),
-                "unitPrice": float(ln["unitPrice"]),
-                "lineTotal": float(ln["lineTotal"]),
+                "quantity": str(ln["quantity"]),
+                "unitPrice": str(ln["unitPrice"]),
+                "lineTotal": str(ln["lineTotal"]),
                 "description": ln["description"],
             }
         )
@@ -188,7 +188,7 @@ def order_json_to_invoice_data(order_dict: dict, due_date: str = None) -> dict:
         "issueDate": issue_date,
         "dueDate": due_date,
         "currency": currency,
-        "totalAmount": float(total_amount),
+        "totalAmount": str(total_amount),
         "supplier": supplier,
         "customer": customer,
         "lines": lines_out,
