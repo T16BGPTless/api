@@ -7,7 +7,6 @@ import xmltodict
 
 def order_xml_to_json(xml_string: str) -> dict:
     """
-    """
     Convert UBL Order XML to a JSON-serialisable dict.
 
     Args:
@@ -23,7 +22,6 @@ def order_xml_to_json(xml_string: str) -> dict:
     if not xml_string or not xml_string.strip():
         raise ValueError("Order XML must not be empty")
     try:
-        # Parse using xmltodict; XML parsing errors will surface as ExpatError.
         return xmltodict.parse(xml_string.strip())
     except ExpatError as e:
         raise ValueError(f"Invalid XML: {e!s}") from e
