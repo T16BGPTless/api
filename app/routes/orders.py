@@ -4,7 +4,9 @@ from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request
 
+from app.routes.invoices import require_api_token
 from app.services.order_xml import order_xml_to_json
+from app.services.order_to_invoice import order_json_to_invoice_data
 
 orders_bp = Blueprint("orders", __name__)
 
@@ -18,6 +20,11 @@ def convert_order_to_json():
     Request body: raw XML (Content-Type: application/xml or text/xml).
     Response: JSON object suitable for storage or downstream use.
     """
+
+    supabase, api_token, error = require_api_token()
+    if error is not None:
+        return error
+
     xml_body = request.get_data(as_text=True)
     if not xml_body or not xml_body.strip():
         return (
@@ -28,6 +35,8 @@ def convert_order_to_json():
         )
     try:
         data = order_xml_to_json(xml_body)
+        data = order_json_to_invoice_data(data)
+        data = {"InvoiceData": data}
     except ValueError as e:
         return (
             jsonify({"error": "BAD_REQUEST", "message": str(e)}),
