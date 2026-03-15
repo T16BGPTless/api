@@ -28,31 +28,63 @@ class MockResponse:
 
 # ------------------------------- TEST CASES --------------------------------
 
+# CASE 1: SUCCESS (201 CREATED) - Using Template ID
+def test_generate_invoice_success_template(client):
+    """Valid token and template ID: creates and returns XML."""
+    mock_tmpl_check = MockResponse(data=[{"owner_token": 10}])
+    mock_group_lookup = MockResponse(data=[{"id": 10}])
+    mock_template_data = MockResponse(
+        data=[
+            {
+                "invoice_data": {
+                    "issueDate": "2026-01-01",
+                    "dueDate": "2026-01-02",
+                    "currency": "AUD",
+                    "totalAmount": 1,
+                    "supplier": {"name": "invoice name", "ABN": "123"},
+                    "customer": {"name": "customer name", "ABN": "456"},
+                    "lines": [
+                        {
+                            "lineId": "1",
+                            "description": "item",
+                            "quantity": 1,
+                            "unitPrice": 1,
+                            "lineTotal": 1,
+                        }
+                    ],
+                }
+            }
+        ]
+    )
+    mock_insert = MockResponse(data=[{"id": 500}])
+    mock_update = MockResponse(data=[{"id": 500}])
 
-# # CASE 1: SUCCESS (201 CREATED) - Using Template ID
-# def test_generate_invoice_success_template(client):
-#     """Valid token and template ID: creates and returns XML."""
-#     mock_tmpl_check = MockResponse(data=[{"owner_token": "valid-token"}])
-#     mock_insert = MockResponse(data=[{"id": 500}])
+    payload = {"templateInvoice": "123"}
 
-#     payload = {"templateInvoice": "T123"}
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch("app.routes.invoices.build_invoice_xml", return_value="<RichXML/>"),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[
+                mock_tmpl_check,
+                mock_group_lookup,
+                mock_template_data,
+                mock_group_lookup,
+                mock_insert,
+                mock_update,
+            ],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.post(
+            "/v1/invoices/generate", json=payload, headers={"APItoken": "valid-token"}
+        )
 
-#     with (
-#         patch("app.routes.invoices.get_db", return_value=MagicMock()),
-#         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-#         patch(
-#             "app.routes.invoices.sb_execute", side_effect=[mock_tmpl_check, mock_insert]
-#         ),
-#         patch("app.routes.invoices.sb_has_error", return_value=False),
-#     ):
-#         response = client.post(
-#             "/v1/invoices/generate", json=payload, headers={"APItoken": "valid-token"}
-#         )
-
-#         assert response.status_code == HTTPStatus.CREATED
-#         assert b"<Template>T123</Template>" in response.data
-#         assert response.mimetype == "application/xml"
-
+        assert response.status_code == HTTPStatus.CREATED
+        assert b"<RichXML/>" in response.data
+        assert response.mimetype == "application/xml"
 
 # CASE 2: SUCCESS - Using Rich Invoice Data
 def test_generate_invoice_success_rich_data(client):
@@ -107,24 +139,35 @@ def test_generate_invoice_template_wrong_owner(client):
         assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-# # CASE 5: BAD REQUEST - XML Build Failure (400)
-# def test_generate_invoice_xml_error(client):
-#     """Tests the try/except block for build_invoice_xml raising ValueError."""
-#     payload = {"InvoiceData": {"bad": "data"}}
+# CASE 5: BAD REQUEST - XML Build Failure (400)
+def test_generate_invoice_xml_error(client):
+    """Tests the try/except block for build_invoice_xml raising ValueError."""
+    mock_group_lookup = MockResponse(data=[{"id": 10}])
+    mock_insert = MockResponse(data=[{"id": 500}])
 
-#     with (
-#         patch("app.routes.invoices.get_db", return_value=MagicMock()),
-#         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-#         patch(
-#             "app.services.invoice_xml.build_invoice_xml",
-#             side_effect=ValueError("Invalid data format"),
-#         ),
-#     ):
-#         response = client.post(
-#             "/v1/invoices/generate", json=payload, headers={"APItoken": "valid-token"}
-#         )
-#         assert response.status_code == HTTPStatus.BAD_REQUEST
-#         assert response.get_json()["error"] == "BAD_REQUEST"
+    payload = {"InvoiceData": {"bad": "data"}}
+
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch(
+            "app.routes.invoices.build_invoice_xml",
+            side_effect=ValueError("Invalid data format"),
+        ),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_group_lookup, mock_insert],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.post(
+            "/v1/invoices/generate",
+            json=payload,
+            headers={"APItoken": "valid-token"},
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        assert response.get_json()["error"] == "BAD_REQUEST"
 
 
 # CASE 6: UNAUTHORIZED (401)
@@ -136,24 +179,56 @@ def test_generate_invoice_unauthorized(client):
         response = client.post("/v1/invoices/generate", headers={"APItoken": "bad"})
         assert response.status_code == HTTPStatus.UNAUTHORIZED
 
+# CASE 7: INTERNAL SERVER ERROR - Insert Fails (500)
+def test_generate_invoice_insert_fail(client):
+    """Template check passes, but the insert fails."""
+    mock_tmpl_check = MockResponse(data=[{"owner_token": 10}])
+    mock_group_lookup = MockResponse(data=[{"id": 10}])
+    mock_template_data = MockResponse(
+        data=[
+            {
+                "invoice_data": {
+                    "issueDate": "2026-01-01",
+                    "dueDate": "2026-01-02",
+                    "currency": "AUD",
+                    "totalAmount": 1,
+                    "supplier": {"name": "invoice name", "ABN": "123"},
+                    "customer": {"name": "customer name", "ABN": "456"},
+                    "lines": [
+                        {
+                            "lineId": "1",
+                            "description": "item",
+                            "quantity": 1,
+                            "unitPrice": 1,
+                            "lineTotal": 1,
+                        }
+                    ],
+                }
+            }
+        ]
+    )
 
-# # CASE 7: INTERNAL SERVER ERROR - Insert Fails (500)
-# def test_generate_invoice_insert_fail(client):
-#     """Template check passes, but the final insert fails."""
-#     mock_tmpl_check = MockResponse(data=[{"owner_token": "token"}])
-
-#     with (
-#         patch("app.routes.invoices.get_db", return_value=MagicMock()),
-#         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-#         patch("app.routes.invoices.sb_execute", side_effect=[mock_tmpl_check, None]),
-#     ):
-#         response = client.post(
-#             "/v1/invoices/generate",
-#             json={"templateInvoice": "T1"},
-#             headers={"APItoken": "token"},
-#         )
-#         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[
+                mock_tmpl_check,
+                mock_group_lookup,
+                mock_template_data,
+                mock_group_lookup,
+                None,
+            ],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.post(
+            "/v1/invoices/generate",
+            json={"templateInvoice": "T1"},
+            headers={"APItoken": "token"},
+        )
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 # CASE 8: DATABASE INITIALIZATION FAILURE (500)
 def test_generate_invoice_db_connection_fail(client):
