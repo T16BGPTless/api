@@ -43,7 +43,7 @@ def test_convert_order_success(client):
         content_type="application/xml",
     )
     assert response.status_code == 200
-    assert response.content_type == "application/json"
+    assert response.mimetype == "application/json"
     data = response.get_json()
     assert isinstance(data, dict)
     # xmltodict root key may be 'Order' or include namespace
