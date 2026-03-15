@@ -42,6 +42,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/UBLInvoiceExample"
 
+        "400":
+          description: |
+            **Bad Request**
+            
+            Missing or invalid invoice data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: "Missing or invalid invoice data: missing field: supplierName"
+
         "401":
           description: |
             **Unauthorized**
@@ -89,6 +105,22 @@ paths:
                   value:
                     error: NOT_FOUND
                     message: The requested resource was not found
+          
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 
   /v1/invoices:
     get:
@@ -128,6 +160,22 @@ paths:
                   value:
                     error: UNAUTHORIZED
                     message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 
 
   /v1/invoices/{invoiceID}:
@@ -197,11 +245,27 @@ paths:
                   value:
                     error: NOT_FOUND
                     message: The requested resource was not found
+          
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 
     delete:
       tags: [Invoices]
       summary: Delete invoice
-      description: Given a valid invoiceID, deletes the invoice
+      description: Given a valid invoiceID, flags this invoice as deleted
       responses:
         "204":
           description: |
@@ -257,12 +321,131 @@ paths:
                     error: NOT_FOUND
                     message: The requested resource was not found
 
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 
+  /v1/orders/convert:
+    post:
+      tags: [Orders]
+      summary: converts an order XML into JSON data ready to be inputted into the invoicing API
+      description: |
+        Creates a UBL XML invoice given the correct data. If given a previous invoiceID, it will fill that data into the unspecified fields. Please note that if a template is not used, all other fields must be filled, however if a template is used, only fields you wish to change have to be filled.
+      
+      parameters:
+        - $ref: "#/components/parameters/APItoken"
+
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/UBLOrderExample"
+                
+          
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            order successfully converted to json.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - InvoiceData
+                properties:
+                  InvoiceData:
+                    $ref: "#/components/schemas/InvoiceData"
+              examples:
+                success:
+                  summary: Successful conversion
+                  value:
+                    InvoiceData:
+                      issueDate: "2005-06-20"
+                      dueDate: "2005-06-20"
+                      currency: "GBP"
+                      totalAmount: "100.00"
+                      supplier:
+                        name: "Consortial"
+                        ABN: "1752692355"
+                      customer:
+                        name: "IYT Corporation"
+                        ABN: "12356478"
+                      lines:
+                        - lineId: "1"
+                          quantity: "1"
+                          unitPrice: "100.00"
+                          lineTotal: "100.00"
+                          description: "Acme beeswax"
+
+
+        "400":
+          description: |
+            **Bad Request**
+            
+            Missing or invalid invoice XML Order data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: "Missing or invalid xml order data"
+
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+          
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 
 
   /v1/auth/register:
     post:
-      tags: [Auth]
+      tags: [Auth (Developer Only)]
       summary: create an API user
       description: |
         creates an API user and generates their API token. These paths are developer only
@@ -287,7 +470,7 @@ paths:
       responses:
         "201":
           description: |
-            **OK** 
+            **Created** 
             
             returns an object with the new groups API token
           content:
@@ -297,9 +480,28 @@ paths:
                 properties:
                   APItoken:
                     type: string
+
+        "400":
+          description: |
+            **Bad Request**
+            
+            Invalid input data. Group name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Invalid input data. group name already exists
         
         "401":
-          description: Unauthorized. Missing or invalid API token
+          description: |
+            **Unauthorized**
+
+            Missing or invalid API token
           content:
             application/json:
               schema:
@@ -309,8 +511,7 @@ paths:
                   summary: UNAUTHORIZED
                   value:
                     error: UNAUTHORIZED
-                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
-                
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website     
         
         "403":
           description: |
@@ -327,11 +528,26 @@ paths:
                   value:
                     error: FORBIDDEN
                     message: You do not have access to this content
-
+        
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 
   /v1/auth/reset:
     put:
-      tags: [Auth]
+      tags: [Auth (Developer Only)]
       summary: resets the API token for a group
       description: |
         given a group name returns a new token for that group
@@ -382,7 +598,6 @@ paths:
                     error: UNAUTHORIZED
                     message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
                 
-        
         "403":
           description: |
             **Forbidden**
@@ -399,9 +614,41 @@ paths:
                     error: FORBIDDEN
                     message: You do not have access to this content
 
+        "404":
+          description: |
+            **Not Found**
+            
+            Group name cannot be found 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: groupName cannot be found
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
   /v1/auth/revoke:
     delete:
-      tags: [Auth]
+      tags: [Auth (Developer Only)]
       summary: removes the API token for a group.
       description: |
         removes the API token for a group. note the data is still attached to the group it is just no longer accessible. Can be reactivated with /v1/auth/reset
@@ -430,7 +677,10 @@ paths:
             API Token revoked.
         
         "401":
-          description: Unauthorized. Missing or invalid API token
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token
           content:
             application/json:
               schema:
@@ -458,7 +708,496 @@ paths:
                   value:
                     error: FORBIDDEN
                     message: You do not have access to this content
+        
+        "404":
+          description: |
+            **Not Found**
+            
+            Group name cannot be found 
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: groupName cannot be found
 
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+  /v1/auth/list:
+    get:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: Lists all groups
+      description: |
+        lists all groups. (Developer only)
+      
+      parameters:
+        - $ref: "#/components/parameters/APIdevToken"
+
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            Returns a list of all group names.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              examples:
+                success:
+                  summary: Successful group list
+                  value:
+                    - WamWarriors
+                    - GTPless
+
+        "401":
+          description: |
+            **Unauthorized**
+
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "403":
+          description: |
+            **Forbidden**
+            
+            You do not have access to make these changes. These paths are developer only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+  /v1/invoices/trace/{invoiceID}:
+    get:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: Get invoice trace
+      description: |
+        Returns a chronological list of log events for a given invoice.  
+        Events may include when the invoice was created, deleted, used as a template, or restored.
+
+      parameters:
+      - $ref: "#/components/parameters/APItoken"
+      - $ref: "#/components/parameters/InvoiceId"
+
+      responses:
+        "200":
+          description: |
+            **OK**
+
+            Returns the event history for the invoice.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - event
+                    - timestamp
+                  properties:
+                    event:
+                      type: string
+                      description: Type of event recorded
+                      example: CREATED
+                    timestamp:
+                      type: string
+                      format: date-time
+                      example: "2026-03-15T10:42:00Z"
+                    actor:
+                      type: string
+                      description: Group or system responsible for the event
+                      example: WamWarriors
+              examples:
+                success:
+                  summary: Example trace log
+                  value:
+                    - event: CREATED
+                      timestamp: "2026-03-15T10:42:00Z"
+                      actor: WamWarriors
+                    - event: USED_AS_TEMPLATE
+                      timestamp: "2026-03-15T11:02:10Z"
+                      actor: WamWarriors
+                    - event: DELETED
+                      timestamp: "2026-03-15T12:15:30Z"
+                      actor: WamWarriors
+                    - event: RESTORED
+                      timestamp: "2026-03-15T12:45:10Z"
+                      actor: WamWarriors
+
+        "401":
+          description: |
+            **Unauthorized**
+
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "403":
+          description: |
+            **Forbidden**
+
+            You do not have access to this invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+
+            InvoiceID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
+
+        "500":
+          description: |
+            **Internal Server Error**
+
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+  /v1/invoices/restore/{invoiceID}:
+    put:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: Restore invoice
+      description: |
+        Restores a previously deleted invoice.  
+        This makes the invoice accessible again and records the restoration in the invoice trace logs.
+
+      parameters:
+        - $ref: "#/components/parameters/APItoken"
+        - $ref: "#/components/parameters/InvoiceId"
+
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            Invoice successfully restored.
+
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "403":
+          description: |
+            **Forbidden**
+            
+            You do not have access to this invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+            
+            InvoiceID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
+
+        "409":
+          description: |
+            **Conflict**
+            
+            The invoice is not deleted and cannot be restored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                CONFLICT:
+                  summary: CONFLICT
+                  value:
+                    error: CONFLICT
+                    message: The invoice is not deleted
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+  /v1/invoices/notify/{invoiceID}:
+    parameters:
+      - $ref: "#/components/parameters/APItoken"
+      - $ref: "#/components/parameters/InvoiceId"
+
+    post:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: Send invoice notification
+      description: |
+        Creates an email from the given invoice, converts it into a pdf and sends it to a specified recipient.
+        This can be used to notify a customer or other party with the invoice attached or included.
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipientEmail:
+                  type: string
+                  format: email
+                  example: accounts@gptless.com
+              required:
+                - recipientEmail
+
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            Invoice notification sent successfully.
+
+        "400":
+          description: |
+            **Bad Request**
+            
+            Missing or invalid email to send to.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Missing or invalid input data
+
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "403":
+          description: |
+            **Forbidden**
+            
+            You do not have access to this invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+            
+            InvoiceID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+
+  /v1/status:
+    get:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: checks that the api is running
+      description: |
+        Checks whether the API is running and reachable.  
+
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            The API service is running.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  service:
+                    type: string
+                    example: GPTless Invoicing API
+              examples:
+                success:
+                  summary: API running
+                  value:
+                    status: OK
+                    service: GPTless Invoicing API
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            The service is not operating correctly.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 components:
   parameters:
     InvoiceId:
@@ -486,65 +1225,80 @@ components:
         type: string
 
   schemas:
+    InvoiceData:
+      type: object
+      description: Full invoice representation.
+      properties:
+        supplier:
+          type: object
+          properties:
+            name:
+              type: string
+              example: Aperture Laboratories
+            ABN:
+              type: string
+              example: 12345678987
+
+        customer:
+          type: object
+          properties:
+            name:
+              type: string
+              example: TerraGroup
+            ABN:
+              type: string
+              example: 12345678987
+
+        issueDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+
+        totalAmount:
+          type: number
+          format: double
+          example: 30
+
+        currency:
+          type: string
+          example: AUD
+
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              lineId:
+                type: string
+                example: 1
+              description:
+                type: string
+                example: Companion Cube
+              quantity:
+                type: number
+                example: 1
+              unitPrice:
+                type: number
+                format: double
+                example: 30
+              lineTotal:
+                type: number
+                format: double
+                example: 30
+
     GenerateInvoiceRequest:
       type: object
       properties:
 
         templateInvoice:
           type: string
+          example: 54336
           description: The InvoiceID to base unfilled fields off of. can be a template or a previous document, no other fields are required if used. 
 
         InvoiceData:
-          type: object
-          description: Full invoice representation.
-          properties:
-            supplier:
-              type: object
-
-              properties:
-                name: 
-                  type: string
-                ABN:
-                  type: string
-                  example: 12345678987
-                
-            customer: 
-              type: object
-              properties:
-                name: 
-                  type: string
-                ABN:
-                  type: string
-                  example: 12345678987
-
-            issueDate:
-              type: string
-              format: date
-            dueDate:
-              type: string
-              format: date
-            totalAmount:
-              type: number
-              format: double
-            currency:
-              type: string
-              example: AUD
-
-            lines:
-              type: array
-              items:
-                type: object
-                properties:
-                  lineId:
-                    type: string
-                  description:
-                    type: string
-                  quantity:
-                    type: number
-                  unitPrice:
-                    type: number
-                  lineTotal:
-                    type: number
+          $ref: "#/components/schemas/InvoiceData"
 
     Error:
       type: object
@@ -559,39 +1313,228 @@ components:
 
     UBLInvoiceExample:
       example: |
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
-          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
-          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
-          <cbc:ID>123</cbc:ID>
-          <cbc:IssueDate>2011-09-22</cbc:IssueDate>
-          <cac:InvoicePeriod>
-            <cbc:StartDate>2011-08-01</cbc:StartDate>
-            <cbc:EndDate>2011-08-31</cbc:EndDate>
-          </cac:InvoicePeriod>
-          <cac:AccountingSupplierParty>
-            <cac:Party>
-              <cac:PartyName>
-                <cbc:Name>Custom Cotter Pins</cbc:Name>
-              </cac:PartyName>
-            </cac:Party>
-          </cac:AccountingSupplierParty>
-          <cac:AccountingCustomerParty>
-            <cac:Party>
-              <cac:PartyName>
-                <cbc:Name>North American Veeblefetzer</cbc:Name>
-              </cac:PartyName>
-            </cac:Party>
-          </cac:AccountingCustomerParty>
-          <cac:LegalMonetaryTotal>
-            <cbc:PayableAmount currencyID="CAD">100.00</cbc:PayableAmount>
-          </cac:LegalMonetaryTotal>
-          <cac:InvoiceLine>
-            <cbc:ID>1</cbc:ID>
-            <cbc:LineExtensionAmount currencyID="CAD">100.00</cbc:LineExtensionAmount>
-            <cac:Item>
-              <cbc:Description>Cotter pin, MIL-SPEC</cbc:Description>
-            </cac:Item>
-          </cac:InvoiceLine>
+        <?xml version='1.0' encoding='utf-8'?>
+        <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+            <cbc:ID>54336</cbc:ID>
+            <cbc:IssueDate>2026-03-15</cbc:IssueDate>
+            <cbc:DueDate>2026-03-15</cbc:DueDate>
+            <cac:AccountingSupplierParty>
+                <cac:Party>
+                    <cac:PartyName>
+                        <cbc:Name>Aperture Laboratories</cbc:Name>
+                    </cac:PartyName>
+                    <cac:PartyTaxScheme>
+                        <cbc:CompanyID>12345678987</cbc:CompanyID>
+                    </cac:PartyTaxScheme>
+                </cac:Party>
+            </cac:AccountingSupplierParty>
+            <cac:AccountingCustomerParty>
+                <cac:Party>
+                    <cac:PartyName>
+                        <cbc:Name>TerraGroup</cbc:Name>
+                    </cac:PartyName>
+                    <cac:PartyTaxScheme>
+                        <cbc:CompanyID>12345678987</cbc:CompanyID>
+                    </cac:PartyTaxScheme>
+                </cac:Party>
+            </cac:AccountingCustomerParty>
+            <cac:LegalMonetaryTotal>
+                <cbc:PayableAmount currencyID="AUD">30.00</cbc:PayableAmount>
+            </cac:LegalMonetaryTotal>
+            <cac:InvoiceLine>
+                <cbc:ID>1</cbc:ID>
+                <cbc:InvoicedQuantity>1</cbc:InvoicedQuantity>
+                <cbc:LineExtensionAmount currencyID="AUD">30.00</cbc:LineExtensionAmount>
+                <cac:Item>
+                    <cbc:Description>Companion Cube</cbc:Description>
+                </cac:Item>
+                <cac:Price>
+                    <cbc:PriceAmount currencyID="AUD">30.00</cbc:PriceAmount>
+                </cac:Price>
+            </cac:InvoiceLine>
         </Invoice>
+      additionalProperties: true
+
+    UBLOrderExample:
+      example: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Order xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns="urn:oasis:names:specification:ubl:schema:xsd:Order-2">
+          <cbc:UBLVersionID>2.0</cbc:UBLVersionID>
+          <cbc:CustomizationID>urn:oasis:names:specification:ubl:xpath:Order-2.0:sbs-1.0-draft</cbc:CustomizationID>
+          <cbc:ProfileID>bpid:urn:oasis:names:draft:bpss:ubl-2-sbs-order-with-simple-response-draft</cbc:ProfileID>
+          <cbc:ID>AEG012345</cbc:ID>
+          <cbc:SalesOrderID>CON0095678</cbc:SalesOrderID>
+          <cbc:CopyIndicator>false</cbc:CopyIndicator>
+          <cbc:UUID>6E09886B-DC6E-439F-82D1-7CCAC7F4E3B1</cbc:UUID>
+          <cbc:IssueDate>2005-06-20</cbc:IssueDate>
+          <cbc:Note>sample</cbc:Note>
+          <cac:BuyerCustomerParty>
+            <cbc:CustomerAssignedAccountID>XFB01</cbc:CustomerAssignedAccountID>
+            <cbc:SupplierAssignedAccountID>GT00978567</cbc:SupplierAssignedAccountID>
+            <cac:Party>
+              <cac:PartyName>
+                <cbc:Name>IYT Corporation</cbc:Name>
+              </cac:PartyName>
+              <cac:PostalAddress>
+                <cbc:StreetName>Avon Way</cbc:StreetName>
+                <cbc:BuildingName>Thereabouts</cbc:BuildingName>
+                <cbc:BuildingNumber>56A</cbc:BuildingNumber>
+                <cbc:CityName>Bridgtow</cbc:CityName>
+                <cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
+                <cbc:CountrySubentity>Avon</cbc:CountrySubentity>
+                <cac:AddressLine>
+                  <cbc:Line>3rd Floor, Room 5</cbc:Line>
+                </cac:AddressLine>
+                <cac:Country>
+                  <cbc:IdentificationCode>GB</cbc:IdentificationCode>
+                </cac:Country>
+              </cac:PostalAddress>
+              <cac:PartyTaxScheme>
+                <cbc:RegistrationName>Bridgtow District Council</cbc:RegistrationName>
+                <cbc:CompanyID>12356478</cbc:CompanyID>
+                <cbc:ExemptionReason>Local Authority</cbc:ExemptionReason>
+                <cac:TaxScheme>
+                  <cbc:ID>UK VAT</cbc:ID>
+                  <cbc:TaxTypeCode>VAT</cbc:TaxTypeCode>
+                </cac:TaxScheme>
+              </cac:PartyTaxScheme>
+              <cac:Contact>
+                <cbc:Name>Mr Fred Churchill</cbc:Name>
+                <cbc:Telephone>0127 2653214</cbc:Telephone>
+                <cbc:Telefax>0127 2653215</cbc:Telefax>
+                <cbc:ElectronicMail>fred@iytcorporation.gov.uk</cbc:ElectronicMail>
+              </cac:Contact>
+            </cac:Party>
+          </cac:BuyerCustomerParty>
+          <cac:SellerSupplierParty>
+            <cbc:CustomerAssignedAccountID>CO001</cbc:CustomerAssignedAccountID>
+            <cac:Party>
+              <cac:PartyName>
+                <cbc:Name>Consortial</cbc:Name>
+              </cac:PartyName>
+              <cac:PostalAddress>
+                <cbc:StreetName>Busy Street</cbc:StreetName>
+                <cbc:BuildingName>Thereabouts</cbc:BuildingName>
+                <cbc:BuildingNumber>56A</cbc:BuildingNumber>
+                <cbc:CityName>Farthing</cbc:CityName>
+                <cbc:PostalZone>AA99 1BB</cbc:PostalZone>
+                <cbc:CountrySubentity>Heremouthshire</cbc:CountrySubentity>
+                <cac:AddressLine>
+                  <cbc:Line>The Roundabout</cbc:Line>
+                </cac:AddressLine>
+                <cac:Country>
+                  <cbc:IdentificationCode>GB</cbc:IdentificationCode>
+                </cac:Country>
+              </cac:PostalAddress>
+              <cac:PartyTaxScheme>
+                <cbc:RegistrationName>Farthing Purchasing Consortium</cbc:RegistrationName>
+                <cbc:CompanyID>175 269 2355</cbc:CompanyID>
+                <cbc:ExemptionReason>N/A</cbc:ExemptionReason>
+                <cac:TaxScheme>
+                  <cbc:ID>VAT</cbc:ID>
+                  <cbc:TaxTypeCode>VAT</cbc:TaxTypeCode>
+                </cac:TaxScheme>
+              </cac:PartyTaxScheme>
+              <cac:Contact>
+                <cbc:Name>Mrs Bouquet</cbc:Name>
+                <cbc:Telephone>0158 1233714</cbc:Telephone>
+                <cbc:Telefax>0158 1233856</cbc:Telefax>
+                <cbc:ElectronicMail>bouquet@fpconsortial.co.uk</cbc:ElectronicMail>
+              </cac:Contact>
+            </cac:Party>
+          </cac:SellerSupplierParty>
+          <cac:OriginatorCustomerParty>
+            <cac:Party>
+              <cac:PartyName>
+                <cbc:Name>The Terminus</cbc:Name>
+              </cac:PartyName>
+              <cac:PostalAddress>
+                <cbc:StreetName>Avon Way</cbc:StreetName>
+                <cbc:BuildingName>Thereabouts</cbc:BuildingName>
+                <cbc:BuildingNumber>56A</cbc:BuildingNumber>
+                <cbc:CityName>Bridgtow</cbc:CityName>
+                <cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
+                <cbc:CountrySubentity>Avon</cbc:CountrySubentity>
+                <cac:AddressLine>
+                  <cbc:Line>3rd Floor, Room 5</cbc:Line>
+                </cac:AddressLine>
+                <cac:Country>
+                  <cbc:IdentificationCode>GB</cbc:IdentificationCode>
+                </cac:Country>
+              </cac:PostalAddress>
+              <cac:PartyTaxScheme>
+                <cbc:RegistrationName>Bridgtow District Council</cbc:RegistrationName>
+                <cbc:CompanyID>12356478</cbc:CompanyID>
+                <cbc:ExemptionReason>Local Authority</cbc:ExemptionReason>
+                <cac:TaxScheme>
+                  <cbc:ID>UK VAT</cbc:ID>
+                  <cbc:TaxTypeCode>VAT</cbc:TaxTypeCode>
+                </cac:TaxScheme>
+              </cac:PartyTaxScheme>
+              <cac:Contact>
+                <cbc:Name>S Massiah</cbc:Name>
+                <cbc:Telephone>0127 98876545</cbc:Telephone>
+                <cbc:Telefax>0127 98876546</cbc:Telefax>
+                <cbc:ElectronicMail>smassiah@the-email.co.uk</cbc:ElectronicMail>
+              </cac:Contact>
+            </cac:Party>
+          </cac:OriginatorCustomerParty>
+          <cac:Delivery>
+            <cac:DeliveryAddress>
+              <cbc:StreetName>Avon Way</cbc:StreetName>
+              <cbc:BuildingName>Thereabouts</cbc:BuildingName>
+              <cbc:BuildingNumber>56A</cbc:BuildingNumber>
+              <cbc:CityName>Bridgtow</cbc:CityName>
+              <cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
+              <cbc:CountrySubentity>Avon</cbc:CountrySubentity>
+              <cac:AddressLine>
+                <cbc:Line>3rd Floor, Room 5</cbc:Line>
+              </cac:AddressLine>
+              <cac:Country>
+                <cbc:IdentificationCode>GB</cbc:IdentificationCode>
+              </cac:Country>
+            </cac:DeliveryAddress>
+            <cac:RequestedDeliveryPeriod>
+              <cbc:StartDate>2005-06-29</cbc:StartDate>
+              <cbc:StartTime>09:30:47.0Z</cbc:StartTime>
+              <cbc:EndDate>2005-06-29</cbc:EndDate>
+              <cbc:EndTime>09:30:47.0Z</cbc:EndTime>
+            </cac:RequestedDeliveryPeriod>
+          </cac:Delivery>
+          <cac:DeliveryTerms>
+            <cbc:SpecialTerms>1% deduction for late delivery as per contract</cbc:SpecialTerms>
+          </cac:DeliveryTerms>
+          <cac:TransactionConditions>
+            <cbc:Description>order response required; payment is by BACS or by cheque</cbc:Description>
+          </cac:TransactionConditions>
+          <cac:AnticipatedMonetaryTotal>
+            <cbc:LineExtensionAmount currencyID="GBP">100.00</cbc:LineExtensionAmount>
+            <cbc:PayableAmount currencyID="GBP">100.00</cbc:PayableAmount>
+          </cac:AnticipatedMonetaryTotal>
+          <cac:OrderLine>
+            <cbc:Note>this is an illustrative order line</cbc:Note>
+            <cac:LineItem>
+              <cbc:ID>1</cbc:ID>
+              <cbc:SalesOrderID>A</cbc:SalesOrderID>
+              <cbc:LineStatusCode>NoStatus</cbc:LineStatusCode>
+              <cbc:Quantity unitCode="KGM">100</cbc:Quantity>
+              <cbc:LineExtensionAmount currencyID="GBP">100.00</cbc:LineExtensionAmount>
+              <cbc:TotalTaxAmount currencyID="GBP">17.50</cbc:TotalTaxAmount>
+              <cac:Price>
+                <cbc:PriceAmount currencyID="GBP">100.00</cbc:PriceAmount>
+                <cbc:BaseQuantity unitCode="KGM">1</cbc:BaseQuantity>
+              </cac:Price>
+              <cac:Item>
+                <cbc:Description>Acme beeswax</cbc:Description>
+                <cbc:Name>beeswax</cbc:Name>
+                <cac:BuyersItemIdentification>
+                  <cbc:ID>6578489</cbc:ID>
+                </cac:BuyersItemIdentification>
+                <cac:SellersItemIdentification>
+                  <cbc:ID>17589683</cbc:ID>
+                </cac:SellersItemIdentification>
+              </cac:Item>
+            </cac:LineItem>
+          </cac:OrderLine>
+        </Order>
       additionalProperties: true
