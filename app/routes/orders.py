@@ -5,6 +5,7 @@ from http import HTTPStatus
 from flask import Blueprint, jsonify, request
 
 from app.services.order_xml import order_xml_to_json
+from app.services.order_to_invoice import order_json_to_invoice_data
 
 orders_bp = Blueprint("orders", __name__)
 
@@ -28,6 +29,7 @@ def convert_order_to_json():
         )
     try:
         data = order_xml_to_json(xml_body)
+        data = order_json_to_invoice_data(data)
     except ValueError as e:
         return (
             jsonify({"error": "BAD_REQUEST", "message": str(e)}),
