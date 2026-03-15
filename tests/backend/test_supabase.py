@@ -184,9 +184,9 @@ def test_invoices_generate_list_get_delete_roundtrip(flask_client, sb):
 
 
 def test_order_xml_to_json_stored_then_to_invoice_xml(flask_client, sb):
-    """Integration: 
+    """Integration:
     user provides order XML -> convert to JSON -> use as InvoiceData -> generate invoice XML.
-    This test is used to verify that the order XML is converted 
+    This test is used to verify that the order XML is converted
     to JSON correctly and that the invoice data is generated correctly.
     """
     from app.services.order_to_invoice import order_json_to_invoice_data
