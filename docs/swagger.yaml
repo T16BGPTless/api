@@ -342,7 +342,7 @@ paths:
       tags: [Orders]
       summary: converts an order XML into JSON data ready to be inputted into the invoicing API
       description: |
-        Creates a UBL XML invoice given the correct data. If given a previous invoiceID, it will fill that data into the unspecified fields. Please note that if a template is not used, all other fields must be filled, however if a template is used, only fields you wish to change have to be filled.
+        Returns a json containing extracted fields from an order XML to allow for editing and changing before inputting into invoicing routes. (Or you can just take the json and put it straight in :>)
       
       parameters:
         - $ref: "#/components/parameters/APItoken"
