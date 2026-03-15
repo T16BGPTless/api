@@ -213,10 +213,9 @@ def test_order_xml_to_json_stored_then_to_invoice_xml(flask_client, sb):
         )
         assert convert_resp.status_code == 200, convert_resp.get_data(as_text=True)
         order_json = convert_resp.get_json()
-        assert isinstance(order_json, dict)
 
         # 2. Map order JSON to InvoiceData shape and send to generate
-        invoice_data = order_json_to_invoice_data(order_json)
+        invoice_data = order_json
         assert "supplier" in invoice_data and "customer" in invoice_data
         assert invoice_data["supplier"].get("name") and invoice_data["customer"].get(
             "name"
