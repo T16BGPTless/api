@@ -90,7 +90,10 @@ def test_decimal_empty_string_returns_zero():
 
 def test_party_none_or_not_dict_returns_unknown():
     """_party_to_supplier_customer returns Unknown when party is None or not dict (line 39)."""
-    assert _party_to_supplier_customer(None) == {"name": "Unknown", "ABN": "00000000000"}
+    assert _party_to_supplier_customer(None) == {
+        "name": "Unknown",
+        "ABN": "00000000000",
+    }
     assert _party_to_supplier_customer([]) == {"name": "Unknown", "ABN": "00000000000"}
     assert _party_to_supplier_customer("x") == {"name": "Unknown", "ABN": "00000000000"}
 
@@ -195,9 +198,15 @@ def test_order_json_root_via_fallback_when_not_order_key():
     order = {
         "urn:some:Order": {
             "cbc:IssueDate": "2021-01-15",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
-            "cac:AnticipatedMonetaryTotal": {"cbc:PayableAmount": {"#text": "10", "@currencyID": "AUD"}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
+            "cac:AnticipatedMonetaryTotal": {
+                "cbc:PayableAmount": {"#text": "10", "@currencyID": "AUD"}
+            },
             "cac:OrderLine": {
                 "cac:LineItem": {
                     "cbc:ID": "1",
@@ -229,8 +238,12 @@ def test_order_json_payable_amount_scalar():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {"cbc:PayableAmount": "99.99"},
             "cac:OrderLine": {
                 "cac:LineItem": {
@@ -251,8 +264,12 @@ def test_order_json_total_from_line_extension_when_payable_zero():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {
                 "cbc:PayableAmount": "0",
                 "cbc:LineExtensionAmount": {"#text": "50.00"},
@@ -276,8 +293,12 @@ def test_order_json_total_from_line_extension_scalar():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {
                 "cbc:PayableAmount": {"#text": "0"},
                 "cbc:LineExtensionAmount": "33.33",
@@ -301,9 +322,15 @@ def test_order_json_currency_empty_fallback():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
-            "cac:AnticipatedMonetaryTotal": {"cbc:PayableAmount": {"#text": "1", "@currencyID": ""}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
+            "cac:AnticipatedMonetaryTotal": {
+                "cbc:PayableAmount": {"#text": "1", "@currencyID": ""}
+            },
             "cac:OrderLine": {
                 "cac:LineItem": {
                     "cbc:ID": "1",
@@ -323,14 +350,24 @@ def test_order_json_order_lines_none():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {"cbc:PayableAmount": "10"},
         }
     }
     data = order_json_to_invoice_data(order)
     assert data["lines"] == [
-        {"lineId": "1", "quantity": "1", "unitPrice": "10", "lineTotal": "10", "description": "Order"}
+        {
+            "lineId": "1",
+            "quantity": "1",
+            "unitPrice": "10",
+            "lineTotal": "10",
+            "description": "Order",
+        }
     ]
 
 
@@ -339,15 +376,25 @@ def test_order_json_order_lines_not_list():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {"cbc:PayableAmount": "10"},
             "cac:OrderLine": "invalid",
         }
     }
     data = order_json_to_invoice_data(order)
     assert data["lines"] == [
-        {"lineId": "1", "quantity": "1", "unitPrice": "10", "lineTotal": "10", "description": "Order"}
+        {
+            "lineId": "1",
+            "quantity": "1",
+            "unitPrice": "10",
+            "lineTotal": "10",
+            "description": "Order",
+        }
     ]
 
 
@@ -356,8 +403,12 @@ def test_order_json_empty_lines_fallback():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {"cbc:PayableAmount": "5"},
             "cac:OrderLine": [None, [], "skip"],
         }
@@ -373,8 +424,12 @@ def test_order_json_total_from_line_sum_when_zero():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {},
             "cac:OrderLine": [
                 {
@@ -405,8 +460,12 @@ def test_order_json_due_date_parameter():
     order = {
         "Order": {
             "cbc:IssueDate": "2020-01-01",
-            "cac:BuyerCustomerParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}},
-            "cac:SellerSupplierParty": {"cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}},
+            "cac:BuyerCustomerParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "B"}}
+            },
+            "cac:SellerSupplierParty": {
+                "cac:Party": {"cac:PartyName": {"cbc:Name": "S"}}
+            },
             "cac:AnticipatedMonetaryTotal": {"cbc:PayableAmount": "1"},
             "cac:OrderLine": {
                 "cac:LineItem": {
