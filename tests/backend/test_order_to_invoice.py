@@ -194,7 +194,7 @@ def test_order_line_unit_price_from_price_amount():
 
 
 def test_order_json_root_via_fallback_when_not_order_key():
-    """order_json_to_invoice_data finds root via values() when key is not 'Order' (lines 107-112)."""
+    """order_json_to_invoice_data finds root via values() when key is not 'Order'"""
     order = {
         "urn:some:Order": {
             "cbc:IssueDate": "2021-01-15",
