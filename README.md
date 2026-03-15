@@ -1,210 +1,124 @@
-## Invoice Generation SaaS – T16BGPTless
+# Invoice Generation API – T16BGPTless
 
-An API-first SaaS that generates standardised UBL invoices from Order Documents and user-provided data. It retrieves contract information, applies pricing rules, and validates invoices to ensure compliance, accuracy, and traceability.
-
----
-
-## Overview
-
-The **Invoice Generation API** creates standardised UBL invoices from Order Documents and user data. It:
-
-- Retrieves pricing and terms from existing contracts.
-- Applies pricing rules, discounts, and taxes.
-- Validates invoices against business rules and formatting standards.
-- Outputs a compliant UBL invoice document ready for downstream accounting systems.
-
-This keeps invoice operations consistent, auditable, and easy to integrate.
+An API that generates standardised UBL invoices. Clients register to obtain an API token, then create and manage invoices. Invoices can be generated from scratch (with JSON payloads) or from stored templates, and are returned as UBL 2 XML.
 
 ---
 
-## Scope
+## How the system works
 
-### Target users
+### Auth and API tokens
 
-- **Accounts receivable teams**: Need fast, accurate invoice creation and tracking.
-- **Operations / billing specialists**: Want automated invoice generation from orders without manual data entry.
-- **Developers / integrators**: Need a clear, well-documented API to plug into existing order management, ERP, or CRM systems.
+- **Registration** is gated by a developer token (see [Local development](#local-development)). With a valid developer token, you call the auth API with a `groupName` and receive an **APItoken**.
+- That **APItoken** is used for all invoice operations: pass it in the `APItoken` header. Each group has its own token; you can **reset** (issue a new token) or **revoke** (invalidate the current one).
+
+### Invoices
+
+- **Generate**: Create an invoice by sending either `InvoiceData` (supplier, customer, lines, totals) or a `templateInvoice` ID (optionally plus overrides). The API validates the data, builds UBL XML, stores the invoice, and returns the XML.
+- **List**: GET returns the IDs of the current group’s non-deleted invoices.
+- **Get**: GET by ID returns the stored UBL XML for an invoice you own.
+- **Delete**: Soft-delete only — the row is marked deleted and no longer appears in list/get, but is not removed from the database.
+
+### Data and storage
+
+- **Backend**: Python 3 with Flask. **Database**: Supabase (PostgreSQL). Tables include `api_groups` (group name, API token) and `api_invoices` (owner, template_id, xml, invoice_data, deleted flag).
+- **Invoice format**: UBL 2 (OASIS). The service validates required fields and totals, then produces XML with the correct namespaces.
+- **Templates**: Any stored invoice can be used as a template. When generating from a template, the template’s `invoice_data` is merged with request `InvoiceData` (request overrides). You must own the template.
 
 ---
 
-## Architecture Overview
+## How to use
 
-**Tech stack used in this project**
+### Run the API locally
 
-- **Deployment**: Vercel (serverless / managed hosting)
-- **Backend / API**: Python 3 with Flask
-- **Frontend**: React (SPA or lightweight UI for testing/integration)
-- **Persistence**: AWS‑hosted managed database (final choice between RDS / DynamoDB / Aurora TBD)
-- **Data formats**: XML Order Documents and UBL Invoice XML
-- **API style**: RESTful JSON APIs orchestrating XML-based invoice generation
+```bash
+# From the repo root
+pip install -r requirements.txt
+# Set SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and VALID_DEV_TOKENS (see below)
+python -m app.app
+# Or: flask --app app.app run
+```
+
+By default the app serves on the usual Flask port. `GET /` redirects to the API documentation.
+
+### API documentation
+
+Open **[https://docs.gptless.au](https://docs.gptless.au)** for full API specs (routes, request/response shapes, and examples).
+
+### Typical flow
+
+1. **Register a group** (requires a valid developer token in `APIdevToken` header):
+   - `POST /v1/auth/register` with body `{"groupName": "my-app"}`.
+   - Response includes `APItoken`; store it and use it for invoice calls.
+
+2. **Create an invoice**:
+   - `POST /v1/invoices/generate` with header `APItoken: <your-token>` and body with `InvoiceData` and/or `templateInvoice` as needed.
+   - Response is `201` with UBL XML in the body.
+
+3. **List / fetch / soft-delete**:
+   - `GET /v1/invoices` — list your invoice IDs.
+   - `GET /v1/invoices/<id>` — get UBL XML for one invoice.
+   - `DELETE /v1/invoices/<id>` — soft-delete an invoice.
 
 ---
 
-## API Routes
+## Local development
 
-### Summary table
+### Environment variables
 
-| Route                                | Method | Description                                                                                       |
-|--------------------------------------|--------|---------------------------------------------------------------------------------------------------|
-| `/v1/invoices/generate`              | POST   | Generate a standard and compliant invoice from order, user, and contract data.                   |
-| `/v1/invoices`                       | GET    | List all invoices with optional filters.                                                          |
-| `/v1/invoices/{invoiceId}`           | GET    | Retrieve a full invoice by ID.                                                                    |
-| `/v1/invoices/{invoiceId}`           | PUT    | Update invoice user data by ID.                                                                   |
-| `/v1/invoices/{invoiceId}`           | DELETE | Delete an invoice by ID.                                                                          |
-| `/v1/invoices/{invoiceId}/export`    | GET    | Export a standardised UBL XML invoice.                                                            |
-| `/v1/credits`                        | POST   | Raise a credit for an existing invoice.                                                           |
-| `/v1/credits/{creditId}`             | GET    | Retrieve a full credit by ID.                                                                     |
-| `/v1/invoices/{invoiceId}/apply-credit` | POST | Apply a credit (full or partial) to an invoice.                                                   |
-| `/v1/invoices/{invoiceId}/status`    | POST   | Record and validate an invoice status update from an external system.                             |
+Create a `.env` file in the project root (do not commit secrets).
 
-### Detailed behaviour
+| Variable | Purpose |
+|----------|---------|
+| `VALID_DEV_TOKENS` | Comma-separated developer tokens that can call `/v1/auth/register`, `/v1/auth/reset`, `/v1/auth/revoke`. If unset or empty, those endpoints return **403**. |
+| `SUPABASE_URL` | Supabase project URL (e.g. from `supabase status` or dashboard). |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key for backend access. |
 
-#### `/v1/invoices/generate`
+For CI, set `VALID_DEV_TOKENS` as a GitHub Actions secret; the workflow passes it into the test run.
 
-- **Description**: Given an Order Document, User Data, Contract Reference, and other data, generates a standard and compliant invoice.
-- **Method**: `POST`
-- **Parameters (body)**:
-  - **Order Document** – Order XML.
-  - **User Data JSON** – Additional invoice data, customer info, payment terms.
-  - **Contract Reference** – Identifier used to fetch contract pricing/discounts.
-  - **Other Data** – Optional fields (e.g. tax rules, special discounts, credit info).
-- **Success response**:
-  - **201 Created**
-  - **Type**: `application/json`
-  - **Body**: New **Invoice** object, including `invoiceId`, `status`, and calculated totals.
-- **Exceptional flows**:
-  - **400 Bad Request** – Missing required fields or malformed XML.
-  - **404 Not Found** – `contractRef` does not exist.
-  - **422 Unprocessable Entity** – Fails business rules (e.g. invalid pricing).
+### Database (Supabase)
 
-#### `/v1/invoices`
+- Migrations live under `supabase/migrations/`. Apply them with the Supabase CLI (e.g. `supabase db reset` or your deployment process).
+- CI starts local Supabase, runs pgTAP tests from `supabase/tests/`, then runs the Python test suite against that instance.
 
-- **Description**: Provides a list of all invoices.
-- **Method**: `GET`
-- **Parameters (query, optional)**:
-  - `limit`
-  - `customer`
-  - `status`
-  - `date`
-- **Success response**:
-  - **200 OK**
-  - **Type**: `application/json`
-  - **Body**: Array of **InvoiceSummary** objects with metadata.
-- **Exceptional flows**:
-  - **400 Bad Request** – Invalid pagination or filtering parameters.
+### Running tests
 
-#### `/v1/invoices/{invoiceId}` – GET
+```bash
+# Backend tests (set VALID_DEV_TOKENS so auth tests run; set Supabase vars if running integration tests)
+export VALID_DEV_TOKENS=your-dev-token
+PYTHONPATH=. pytest tests/backend -v
 
-- **Description**: Given a valid `invoiceId`, returns all relevant information about the invoice.
-- **Method**: `GET`
-- **Parameters**:
-  - **Path**: `invoiceId`
-- **Success response**:
-  - **200 OK**
-  - **Type**: `application/json`
-  - **Body**: Full **Invoice** object.
-- **Exceptional flows**:
-  - **404 Not Found** – Invoice ID does not exist.
+# With coverage
+PYTHONPATH=. coverage run -m pytest tests/backend -v
+coverage report -m
 
-#### `/v1/invoices/{invoiceId}` – PUT
+# Lint
+pylint app/**/*.py --errors-only
+```
 
-- **Description**: Updates an invoice’s user data.
-- **Method**: `PUT`
-- **Parameters**:
-  - **Path**: `invoiceId`
-  - **Body**: Updated user data JSON.
-- **Success response**:
-  - **200 OK**
-  - **Type**: `application/json`
-  - **Body**: **Invoice** object with updated information.
-- **Exceptional flows**:
-  - **404 Not Found** – Invoice ID does not exist.
-  - **409 Conflict** – Invoice is in an invalid state for modification (e.g. already finalised/exported).
+Tests that need a real Supabase (e.g. `test_supabase.py` integration tests) require `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Auth-related tests need `VALID_DEV_TOKENS` or they are skipped.
 
-#### `/v1/invoices/{invoiceId}` – DELETE
+---
 
-- **Description**: Deletes an invoice.
-- **Method**: `DELETE`
-- **Parameters**:
-  - **Path**: `invoiceId`
-- **Success response**:
-  - **204 No Content**
-  - **Body**: Empty.
-- **Exceptional flows**:
-  - **404 Not Found** – Invoice ID does not exist.
-  - **409 Conflict** – Invoice cannot be deleted because it has been finalised/exported.
+## Project layout
 
-#### `/v1/invoices/{invoiceId}/export`
+| Path | Description |
+|------|-------------|
+| `app/app.py` | Flask app, blueprint registration, home redirect. |
+| `app/routes/auth.py` | Register, reset, revoke (group + API token). |
+| `app/routes/invoices.py` | Generate, list, get, delete invoices. |
+| `app/routes/helpers.py` | Shared helpers (DB, errors, dev-token validation). |
+| `app/services/invoice_xml.py` | UBL invoice build and validation. |
+| `app/db/supabase_client.py` | Supabase client singleton. |
+| `supabase/migrations/` | SQL migrations for `api_groups`, `api_invoices`, RLS. |
+| `supabase/tests/` | pgTAP database tests. |
+| `tests/backend/` | Pytest tests (auth, invoices, helpers, XML, app). |
+| `.github/workflows/ci.yml` | CI: Supabase CLI, db tests, pytest + coverage, pylint. |
 
-- **Description**: Given a valid `invoiceId`, generates and returns the standardised final invoice.
-- **Method**: `GET`
-- **Parameters**:
-  - **Path**: `invoiceId`
-- **Success response**:
-  - **200 OK**
-  - **Type**: `application/xml`
-  - **Body**: Standardised and compliant UBL XML document ready for download or file transfer.
-- **Exceptional flows**:
-  - **404 Not Found** – Invoice ID does not exist.
-  - **400 Bad Request** – Invoice is missing required data for UBL formatting standards.
+---
 
-#### `/v1/credits`
+## Tech stack
 
-- **Description**: Raises credit for an existing invoice.
-- **Method**: `POST`
-- **Parameters (body)**:
-  - `invoiceId`
-- **Success response**:
-  - **201 Created**
-  - **Type**: `application/json`
-  - **Body**: **Credit** object containing `creditId`, `status`, and `amount`.
-- **Exceptional flows**:
-  - **400 Bad Request** – Amount is zero, negative, or missing.
-  - **404 Not Found** – Invoice ID does not exist.
-
-#### `/v1/credits/{creditId}`
-
-- **Description**: Given a valid `creditId`, gets all relevant information for the specified credit.
-- **Method**: `GET`
-- **Parameters**:
-  - **Path**: `creditId`
-- **Success response**:
-  - **200 OK**
-  - **Type**: `application/json`
-  - **Body**: Full **Credit** object.
-- **Exceptional flows**:
-  - **404 Not Found** – Credit ID does not exist.
-
-#### `/v1/invoices/{invoiceId}/apply-credit`
-
-- **Description**: Given a valid `invoiceId`, applies a specified credit to the invoice.
-- **Method**: `POST`
-- **Parameters**:
-  - **Path**: `invoiceId`
-  - **Body**:
-    - `creditId`
-    - `amount`
-- **Success response**:
-  - **200 OK**
-  - **Type**: `application/json`
-  - **Body**: **Invoice** object showing updated credit and due amount.
-- **Exceptional flows**:
-  - **400 Bad Request** – Amount exceeds invoice total or available credit.
-  - **404 Not Found** – Invoice ID does not exist.
-  - **404 Not Found** – Credit ID does not exist.
-  - **409 Conflict** – Credit already applied.
-
-#### `/v1/invoices/{invoiceId}/status`
-
-- **Description**: Given an `invoiceId`, validate the invoice status update from an external system and log it.
-- **Method**: `POST`
-- **Parameters**:
-  - **Path**: `invoiceId`
-  - **Body**: `currentStatus`
-- **Success response**:
-  - **200 OK**
-  - **Type**: `application/json`
-  - **Body**: Acknowledgement object confirming the status update was recorded and logged.
-- **Exceptional flows**:
-  - **404 Not Found** – Invoice ID does not exist.
-  - **422 Unprocessable Entity** – Invalid status payload received from the accounting/financials system.
+- **API**: Python 3, Flask.
+- **Database**: Supabase (PostgreSQL, PostgREST).
+- **Invoice format**: UBL 2 XML.
+- **CI**: GitHub Actions — Supabase CLI, pgTAP, pytest, coverage, Pylint.

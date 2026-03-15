@@ -27,7 +27,7 @@ class MockResponse:
 # ------------------------------ register ------------------------------
 
 
-def test_register_success(client):
+def test_register_success(client, valid_dev_token):
     """Happy path: new group is created and APItoken is returned."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[])
@@ -41,7 +41,7 @@ def test_register_success(client):
         resp = client.post(
             "/v1/auth/register",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.CREATED
@@ -70,19 +70,19 @@ def test_register_forbidden_dev_token(client):
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_register_group_name_required(client):
+def test_register_group_name_required(client, valid_dev_token):
     """Missing groupName returns 400."""
     with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.post(
             "/v1/auth/register",
             json={},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.BAD_REQUEST
 
 
-def test_register_group_already_registered(client):
+def test_register_group_already_registered(client, valid_dev_token):
     """Existing groupName returns 409."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[{"api_token": "existing"}])
@@ -95,13 +95,13 @@ def test_register_group_already_registered(client):
         resp = client.post(
             "/v1/auth/register",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.CONFLICT
 
 
-def test_register_db_error_on_lookup(client):
+def test_register_db_error_on_lookup(client, valid_dev_token):
     """If sb_execute(None) or error on lookup, return 500."""
     mock_supabase = MagicMock()
 
@@ -112,25 +112,25 @@ def test_register_db_error_on_lookup(client):
         resp = client.post(
             "/v1/auth/register",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-def test_register_get_db_failure(client):
+def test_register_get_db_failure(client, valid_dev_token):
     """If get_db returns None, return 500."""
     with patch("app.routes.helpers.get_db", return_value=None):
         resp = client.post(
             "/v1/auth/register",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-def test_register_db_error_on_insert(client):
+def test_register_db_error_on_insert(client, valid_dev_token):
     """If insert sb_execute fails, return 500."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[])
@@ -144,7 +144,7 @@ def test_register_db_error_on_insert(client):
         resp = client.post(
             "/v1/auth/register",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
@@ -153,7 +153,7 @@ def test_register_db_error_on_insert(client):
 # ------------------------------ reset ------------------------------
 
 
-def test_reset_success(client):
+def test_reset_success(client, valid_dev_token):
     """Happy path: existing group gets a new token."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[{"api_token": "old-token"}])
@@ -167,7 +167,7 @@ def test_reset_success(client):
         resp = client.put(
             "/v1/auth/reset",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.OK
@@ -176,7 +176,7 @@ def test_reset_success(client):
     assert body["APItoken"] != "old-token"
 
 
-def test_reset_group_not_found(client):
+def test_reset_group_not_found(client, valid_dev_token):
     """Reset for unknown group returns 404."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[])
@@ -189,19 +189,19 @@ def test_reset_group_not_found(client):
         resp = client.put(
             "/v1/auth/reset",
             json={"groupName": "missing"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_reset_get_db_failure(client):
+def test_reset_get_db_failure(client, valid_dev_token):
     """If get_db() returns None for reset, return 500."""
     with patch("app.routes.helpers.get_db", return_value=None):
         resp = client.put(
             "/v1/auth/reset",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
@@ -227,19 +227,19 @@ def test_reset_forbidden_dev_token(client):
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_reset_group_name_required(client):
+def test_reset_group_name_required(client, valid_dev_token):
     """Missing groupName on reset returns 400."""
     with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.put(
             "/v1/auth/reset",
             json={},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.BAD_REQUEST
 
 
-def test_reset_db_error_on_lookup(client):
+def test_reset_db_error_on_lookup(client, valid_dev_token):
     """If initial lookup in reset fails, return 500."""
     mock_supabase = MagicMock()
 
@@ -250,13 +250,13 @@ def test_reset_db_error_on_lookup(client):
         resp = client.put(
             "/v1/auth/reset",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-def test_reset_db_error_on_update(client):
+def test_reset_db_error_on_update(client, valid_dev_token):
     """If update sb_execute fails in reset, return 500."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[{"api_token": "old"}])
@@ -269,7 +269,7 @@ def test_reset_db_error_on_update(client):
         resp = client.put(
             "/v1/auth/reset",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
@@ -278,7 +278,7 @@ def test_reset_db_error_on_update(client):
 # ------------------------------ revoke ------------------------------
 
 
-def test_revoke_success(client):
+def test_revoke_success(client, valid_dev_token):
     """Happy path: token is nulled and previous token is returned."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[{"api_token": "old-token"}])
@@ -292,12 +292,13 @@ def test_revoke_success(client):
         resp = client.delete(
             "/v1/auth/revoke",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.NO_CONTENT
 
-def test_revoke_group_not_found(client):
+
+def test_revoke_group_not_found(client, valid_dev_token):
     """Revoke for unknown group returns 404."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[])
@@ -310,19 +311,38 @@ def test_revoke_group_not_found(client):
         resp = client.delete(
             "/v1/auth/revoke",
             json={"groupName": "missing"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_revoke_get_db_failure(client):
+def test_revoke_api_token_not_found(client, valid_dev_token):
+    """Revoke when group exists but api_token is already None returns 404."""
+    mock_supabase = MagicMock()
+    existing_resp = MockResponse(data=[{"api_token": None}])
+
+    with (
+        patch("app.routes.helpers.get_db", return_value=mock_supabase),
+        patch("app.routes.auth.sb_execute", return_value=existing_resp),
+        patch("app.routes.auth.sb_has_error", return_value=False),
+    ):
+        resp = client.delete(
+            "/v1/auth/revoke",
+            json={"groupName": "my-group"},
+            headers={"APIdevToken": valid_dev_token},
+        )
+
+    assert resp.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_revoke_get_db_failure(client, valid_dev_token):
     """If get_db() returns None for revoke, return 500."""
     with patch("app.routes.helpers.get_db", return_value=None):
         resp = client.delete(
             "/v1/auth/revoke",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
@@ -348,19 +368,19 @@ def test_revoke_forbidden_dev_token(client):
     assert resp.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_revoke_group_name_required(client):
+def test_revoke_group_name_required(client, valid_dev_token):
     """Missing groupName on revoke returns 400."""
     with patch("app.routes.helpers.get_db", return_value=MagicMock()):
         resp = client.delete(
             "/v1/auth/revoke",
             json={},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.BAD_REQUEST
 
 
-def test_revoke_db_error_on_lookup(client):
+def test_revoke_db_error_on_lookup(client, valid_dev_token):
     """If initial lookup in revoke fails, return 500."""
     mock_supabase = MagicMock()
 
@@ -371,13 +391,13 @@ def test_revoke_db_error_on_lookup(client):
         resp = client.delete(
             "/v1/auth/revoke",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-def test_revoke_db_error_on_update(client):
+def test_revoke_db_error_on_update(client, valid_dev_token):
     """If delete sb_execute fails in revoke, return 500."""
     mock_supabase = MagicMock()
     existing_resp = MockResponse(data=[{"api_token": "old"}])
@@ -390,7 +410,7 @@ def test_revoke_db_error_on_update(client):
         resp = client.delete(
             "/v1/auth/revoke",
             json={"groupName": "my-group"},
-            headers={"APIdevToken": "dev-secret"},
+            headers={"APIdevToken": valid_dev_token},
         )
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR

@@ -1,9 +1,10 @@
 """Helper tests."""
 
-import pytest
-from unittest.mock import patch, MagicMock
-from postgrest.exceptions import APIError
 from http import HTTPStatus
+from unittest.mock import patch, MagicMock
+import pytest
+from postgrest.exceptions import APIError
+
 from app.routes.helpers import (
     sb_has_error,
     sb_execute,
@@ -69,6 +70,7 @@ def test_is_valid_api_token_db_error():
 
 
 def test_sb_has_error():
+    """Returns True if the response has an error."""
     assert sb_has_error(MockResponse(error="Some Error")) is True
     assert sb_has_error(MockResponse(data=[])) is False
     assert sb_has_error(None) is False
@@ -78,6 +80,7 @@ def test_sb_has_error():
 
 
 def test_sb_execute_success():
+    """Returns the result of the execute method."""
     mock_builder = MagicMock()
     mock_builder.execute.return_value = "Success"
     assert sb_execute(mock_builder) == "Success"
@@ -94,6 +97,7 @@ def test_sb_execute_api_error():
 
 
 def test_get_db_success():
+    """Returns the client if the connection is successful."""
     with patch("app.routes.helpers.get_supabase", return_value="client"):
         assert get_db() == "client"
 

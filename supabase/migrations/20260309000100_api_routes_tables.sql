@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS public.api_invoices (
   owner_token text NOT NULL,
   template_id text NOT NULL,
   xml text NOT NULL,
-  invoice_data jsonb NOT NULL,
+  invoice_data jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   deleted boolean NOT NULL DEFAULT false
 );

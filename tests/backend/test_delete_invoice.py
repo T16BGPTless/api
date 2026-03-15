@@ -1,9 +1,9 @@
 """Delete invoice tests."""
 
-import pytest
 from unittest.mock import patch, MagicMock
-from app.app import app
 from http import HTTPStatus
+import pytest
+from app.app import app
 
 
 # --------------------------------- FIXTURE ---------------------------------
@@ -27,6 +27,7 @@ class MockResponse:
 
 
 # ------------------------------- TEST CASES --------------------------------
+
 
 # CASE 1: SUCCESS (204 NO_CONTENT)
 def test_delete_invoice_success(client):
@@ -52,6 +53,7 @@ def test_delete_invoice_success(client):
         response = client.delete("/v1/invoices/777", headers={"APItoken": "my-token"})
 
         assert response.status_code == HTTPStatus.NO_CONTENT
+
 
 # CASE 2: NOT FOUND - ALREADY DELETED (404)
 def test_delete_invoice_already_deleted(client):
@@ -108,6 +110,7 @@ def test_delete_invoice_not_found(client):
         response = client.delete("/v1/invoices/999", headers={"APItoken": "token"})
         assert response.status_code == HTTPStatus.NOT_FOUND
 
+
 # CASE 6: UPDATE FAILURE (500)
 def test_delete_invoice_update_error(client):
     """First DB call works, but the second call (the update) fails."""
@@ -144,6 +147,25 @@ def test_delete_invoice_initial_query_error(client):
     ):
         response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+# CASE 8b: UNAUTHORIZED - get_group_id_from_token fails (lines 35, 250)
+def test_delete_invoice_group_lookup_fails(client):
+    """Existing invoice fetch succeeds but get_group_id_from_token fails."""
+    mock_existing = MockResponse(
+        data=[{"owner_token": 10, "xml": "<Invoice/>", "deleted": False}]
+    )
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_existing, None],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.delete("/v1/invoices/777", headers={"APItoken": "token"})
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
 
 
 # CASE 9: INITIAL QUERY SUPABASE ERROR (500)
