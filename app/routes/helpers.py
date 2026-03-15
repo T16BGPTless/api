@@ -1,13 +1,15 @@
 """Helper functions for the routes."""
 
-from http import HTTPStatus
-from postgrest.exceptions import APIError
-from flask import jsonify, request, Response
-from supabase import Client
-from app.db.supabase_client import get_supabase
 import os
 from pathlib import Path
+from http import HTTPStatus
+
 from dotenv import load_dotenv
+from flask import jsonify, request, Response
+from postgrest.exceptions import APIError
+from supabase import Client
+
+from app.db.supabase_client import get_supabase
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 

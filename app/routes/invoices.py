@@ -38,7 +38,7 @@ def get_group_id_from_token(supabase, api_token):
 
 # ------------------- POST /v1/invoice/generate  -------------------
 @invoices_bp.route("/v1/invoices/generate", methods=["POST"])
-def generate_invoice():  # pylint: disable=too-many-return-statements
+def generate_invoice():  # pylint: disable=too-many-return-statements,too-many-locals,too-many-branches
     """Generate an invoice."""
     supabase, api_token, error = require_api_token()
     if error is not None:
@@ -70,7 +70,8 @@ def generate_invoice():  # pylint: disable=too-many-return-statements
             return return_error("FORBIDDEN")
 
     try:
-        # If template exists, merge its invoice_data with the request's InvoiceData (request takes precedence)
+        # If template exists, merge its invoice_data with request InvoiceData
+        # (request takes precedence).
         if template_id:
             template_resp = sb_execute(
                 supabase.table("api_invoices")

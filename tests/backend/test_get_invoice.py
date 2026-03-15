@@ -28,6 +28,7 @@ class MockResponse:
 
 # ------------------------------- TEST CASES --------------------------------
 
+
 # CASE 1: SUCCESS (200 OK)
 def test_get_invoice_success(client):
     """Everything is correct: valid token, invoice exists, and user owns it."""

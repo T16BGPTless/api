@@ -28,6 +28,7 @@ class MockResponse:
 
 # ------------------------------- TEST CASES --------------------------------
 
+
 # CASE 1: SUCCESS (201 CREATED) - Using Template ID
 def test_generate_invoice_success_template(client):
     """Valid token and template ID: creates and returns XML."""
@@ -85,6 +86,7 @@ def test_generate_invoice_success_template(client):
         assert response.status_code == HTTPStatus.CREATED
         assert b"<RichXML/>" in response.data
         assert response.mimetype == "application/xml"
+
 
 # CASE 2: SUCCESS - Using Rich Invoice Data
 def test_generate_invoice_success_rich_data(client):
@@ -179,6 +181,7 @@ def test_generate_invoice_unauthorized(client):
         response = client.post("/v1/invoices/generate", headers={"APItoken": "bad"})
         assert response.status_code == HTTPStatus.UNAUTHORIZED
 
+
 # CASE 7: INTERNAL SERVER ERROR - Insert Fails (500)
 def test_generate_invoice_insert_fail(client):
     """Template check passes, but the insert fails."""
@@ -229,6 +232,7 @@ def test_generate_invoice_insert_fail(client):
             headers={"APItoken": "token"},
         )
         assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
 
 # CASE 8: DATABASE INITIALIZATION FAILURE (500)
 def test_generate_invoice_db_connection_fail(client):

@@ -28,6 +28,7 @@ class MockResponse:
 
 # ------------------------------- TEST CASES --------------------------------
 
+
 # CASE 1: SUCCESS (204 NO_CONTENT)
 def test_delete_invoice_success(client):
     """Everything is correct: finds invoice, matches owner, and soft-deletes."""
@@ -52,6 +53,7 @@ def test_delete_invoice_success(client):
         response = client.delete("/v1/invoices/777", headers={"APItoken": "my-token"})
 
         assert response.status_code == HTTPStatus.NO_CONTENT
+
 
 # CASE 2: NOT FOUND - ALREADY DELETED (404)
 def test_delete_invoice_already_deleted(client):
@@ -107,6 +109,7 @@ def test_delete_invoice_not_found(client):
     ):
         response = client.delete("/v1/invoices/999", headers={"APItoken": "token"})
         assert response.status_code == HTTPStatus.NOT_FOUND
+
 
 # CASE 6: UPDATE FAILURE (500)
 def test_delete_invoice_update_error(client):
