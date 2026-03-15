@@ -445,7 +445,7 @@ paths:
 
   /v1/auth/register:
     post:
-      tags: [Auth]
+      tags: [Auth (Developer Only)]
       summary: create an API user
       description: |
         creates an API user and generates their API token. These paths are developer only
@@ -547,7 +547,7 @@ paths:
 
   /v1/auth/reset:
     put:
-      tags: [Auth]
+      tags: [Auth (Developer Only)]
       summary: resets the API token for a group
       description: |
         given a group name returns a new token for that group
@@ -648,7 +648,7 @@ paths:
 
   /v1/auth/revoke:
     delete:
-      tags: [Auth]
+      tags: [Auth (Developer Only)]
       summary: removes the API token for a group.
       description: |
         removes the API token for a group. note the data is still attached to the group it is just no longer accessible. Can be reactivated with /v1/auth/reset
@@ -743,10 +743,10 @@ paths:
 
   /v1/auth/list:
     get:
-      tags: [Unimplemented]
+      tags: [Unimplemented (stretch goals/ideas)]
       summary: Lists all groups
       description: |
-        lists all groups.
+        lists all groups. (Developer only)
       
       parameters:
         - $ref: "#/components/parameters/APIdevToken"
@@ -756,26 +756,19 @@ paths:
           description: |
             **OK**
             
-            Returns a list of all groups.
+            Returns a list of all group names.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  required:
-                    - groupName
-                  properties:
-                    groupName:
-                      type: string
-                      example: WamWarriors
+                  type: string
               examples:
                 success:
                   summary: Successful group list
                   value:
-                    - groupName: WamWarriors
-                    - groupName: ApertureLabs
-                    - groupName: TerraGroup
+                    - WamWarriors
+                    - GTPless
 
         "401":
           description: |
@@ -825,6 +818,386 @@ paths:
                     error: INTERNAL_SERVER_ERROR
                     message: An internal server error occurred.
 
+  /v1/invoices/trace/{invoiceID}:
+    get:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: Get invoice trace
+      description: |
+        Returns a chronological list of log events for a given invoice.  
+        Events may include when the invoice was created, deleted, used as a template, or restored.
+
+      parameters:
+      - $ref: "#/components/parameters/APItoken"
+      - $ref: "#/components/parameters/InvoiceId"
+
+      responses:
+        "200":
+          description: |
+            **OK**
+
+            Returns the event history for the invoice.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - event
+                    - timestamp
+                  properties:
+                    event:
+                      type: string
+                      description: Type of event recorded
+                      example: CREATED
+                    timestamp:
+                      type: string
+                      format: date-time
+                      example: "2026-03-15T10:42:00Z"
+                    actor:
+                      type: string
+                      description: Group or system responsible for the event
+                      example: WamWarriors
+              examples:
+                success:
+                  summary: Example trace log
+                  value:
+                    - event: CREATED
+                      timestamp: "2026-03-15T10:42:00Z"
+                      actor: WamWarriors
+                    - event: USED_AS_TEMPLATE
+                      timestamp: "2026-03-15T11:02:10Z"
+                      actor: WamWarriors
+                    - event: DELETED
+                      timestamp: "2026-03-15T12:15:30Z"
+                      actor: WamWarriors
+                    - event: RESTORED
+                      timestamp: "2026-03-15T12:45:10Z"
+                      actor: WamWarriors
+
+        "401":
+          description: |
+            **Unauthorized**
+
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "403":
+          description: |
+            **Forbidden**
+
+            You do not have access to this invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+
+            InvoiceID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
+
+        "500":
+          description: |
+            **Internal Server Error**
+
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+  /v1/invoices/restore/{invoiceID}:
+    put:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: Restore invoice
+      description: |
+        Restores a previously deleted invoice.  
+        This makes the invoice accessible again and records the restoration in the invoice trace logs.
+
+      parameters:
+        - $ref: "#/components/parameters/APItoken"
+        - $ref: "#/components/parameters/InvoiceId"
+
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            Invoice successfully restored.
+
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "403":
+          description: |
+            **Forbidden**
+            
+            You do not have access to this invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+            
+            InvoiceID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
+
+        "409":
+          description: |
+            **Conflict**
+            
+            The invoice is not deleted and cannot be restored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                CONFLICT:
+                  summary: CONFLICT
+                  value:
+                    error: CONFLICT
+                    message: The invoice is not deleted
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+  /v1/invoices/notify/{invoiceID}:
+    parameters:
+      - $ref: "#/components/parameters/APItoken"
+      - $ref: "#/components/parameters/InvoiceId"
+
+    post:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: Send invoice notification
+      description: |
+        Creates an email from the given invoice, converts it into a pdf and sends it to a specified recipient.
+        This can be used to notify a customer or other party with the invoice attached or included.
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipientEmail:
+                  type: string
+                  format: email
+                  example: accounts@gptless.com
+              required:
+                - recipientEmail
+
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            Invoice notification sent successfully.
+
+        "400":
+          description: |
+            **Bad Request**
+            
+            Missing or invalid email to send to.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Missing or invalid input data
+
+        "401":
+          description: |
+            **Unauthorized**
+            
+            Missing or invalid API token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    message: The API token is missing or invalid. If you do not have an API token register for one through the forum on our website
+
+        "403":
+          description: |
+            **Forbidden**
+            
+            You do not have access to this invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                FORBIDDEN:
+                  summary: FORBIDDEN
+                  value:
+                    error: FORBIDDEN
+                    message: You do not have access to this content
+
+        "404":
+          description: |
+            **Not Found**
+            
+            InvoiceID does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                NOT_FOUND:
+                  summary: NOT_FOUND
+                  value:
+                    error: NOT_FOUND
+                    message: The requested resource was not found
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            There was an internal server error. if this persists contact us at contact@gptless.au.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
+
+
+  /v1/status:
+    get:
+      tags: [Unimplemented (stretch goals/ideas)]
+      summary: checks that the api is running
+      description: |
+        Checks whether the API is running and reachable.  
+
+      responses:
+        "200":
+          description: |
+            **OK**
+            
+            The API service is running.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  service:
+                    type: string
+                    example: GPTless Invoicing API
+              examples:
+                success:
+                  summary: API running
+                  value:
+                    status: OK
+                    service: GPTless Invoicing API
+
+        "500":
+          description: |
+            **Internal Server Error**
+            
+            The service is not operating correctly.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                INTERNAL_SERVER_ERROR:
+                  summary: INTERNAL_SERVER_ERROR
+                  value:
+                    error: INTERNAL_SERVER_ERROR
+                    message: An internal server error occurred.
 components:
   parameters:
     InvoiceId:
