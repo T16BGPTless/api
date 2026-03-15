@@ -30,6 +30,7 @@ def convert_order_to_json():
     try:
         data = order_xml_to_json(xml_body)
         data = order_json_to_invoice_data(data)
+        data = {"InvoiceData": data}
     except ValueError as e:
         return (
             jsonify({"error": "BAD_REQUEST", "message": str(e)}),
