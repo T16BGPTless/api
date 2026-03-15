@@ -28,31 +28,34 @@ class MockResponse:
 
 # ------------------------------- TEST CASES --------------------------------
 
+# CASE 1: SUCCESS (200 OK)
+def test_get_invoice_success(client):
+    """Everything is correct: valid token, invoice exists, and user owns it."""
+    mock_db_data = MockResponse(
+        data=[
+            {
+                "owner_token": 10,
+                "xml": "<Invoice><ID>123</ID></Invoice>",
+                "deleted": False,
+            }
+        ]
+    )
+    mock_group_lookup = MockResponse(data=[{"id": 10}])
 
-# # CASE 1: SUCCESS (200 OK)
-# def test_get_invoice_success(client):
-#     """Everything is correct: valid token, invoice exists, and user owns it."""
-#     mock_db_data = MockResponse(
-#         data=[
-#             {
-#                 "owner_token": "valid-token",
-#                 "xml": "<Invoice><ID>123</ID></Invoice>",
-#                 "deleted": False,
-#             }
-#         ]
-#     )
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_db_data, mock_group_lookup],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.get("/v1/invoices/123", headers={"APItoken": "valid-token"})
 
-#     with (
-#         patch("app.routes.invoices.get_db", return_value=MagicMock()),
-#         patch("app.routes.invoices.is_valid_api_token", return_value=True),
-#         patch("app.routes.invoices.sb_execute", return_value=mock_db_data),
-#         patch("app.routes.invoices.sb_has_error", return_value=False),
-#     ):
-#         response = client.get("/v1/invoices/123", headers={"APItoken": "valid-token"})
-
-#         assert response.status_code == HTTPStatus.OK
-#         assert b"<ID>123</ID>" in response.data
-#         assert response.mimetype == "application/xml"
+        assert response.status_code == HTTPStatus.OK
+        assert b"<ID>123</ID>" in response.data
+        assert response.mimetype == "application/xml"
 
 
 # CASE 2: DATABASE INITIALIZATION FAILURE (500)
