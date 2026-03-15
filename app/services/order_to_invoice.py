@@ -129,7 +129,7 @@ def order_json_to_invoice_data(order_dict: dict, due_date: str = None) -> dict:
             total_amount = _decimal(pay_el.get("#text") or pay_el.get("value"))
         else:
             total_amount = _decimal(pay_el)
-        if not total_amount and total_amount == 0:
+        if total_amount == 0:
             line_el = _first(amt_el, "cbc:LineExtensionAmount", "LineExtensionAmount")
             if isinstance(line_el, dict):
                 total_amount = _decimal(line_el.get("#text") or line_el.get("value"))
