@@ -4,7 +4,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request
 
-from api.app.routes.invoices import require_api_token
+from app.routes.invoices import require_api_token
 from app.services.order_xml import order_xml_to_json
 from app.services.order_to_invoice import order_json_to_invoice_data
 
