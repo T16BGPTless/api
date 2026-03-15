@@ -42,7 +42,10 @@ def _party_to_supplier_customer(party: dict) -> dict:
     name_el = _first(inner, "cac:PartyName", "PartyName")
     name = _text(_first(name_el, "cbc:Name", "Name") if name_el else None) or "Unknown"
     tax_el = _first(inner, "cac:PartyTaxScheme", "PartyTaxScheme")
-    abn = _text(_first(tax_el, "cbc:CompanyID", "CompanyID") if tax_el else None) or "00000000000"
+    abn = (
+        _text(_first(tax_el, "cbc:CompanyID", "CompanyID") if tax_el else None)
+        or "00000000000"
+    )
     return {"name": name, "ABN": abn}
 
 
@@ -62,12 +65,21 @@ def _order_line_to_invoice_line(line_or_item: dict) -> dict:
     else:
         line_total = _decimal(ext_el)
     price_el = _first(item, "cac:Price", "Price")
-    price_amount = _decimal(_first(price_el, "cbc:PriceAmount", "PriceAmount") if price_el else None)
+    price_amount = _decimal(
+        _first(price_el, "cbc:PriceAmount", "PriceAmount") if price_el else None
+    )
     unit_price = (line_total / qty) if qty else Decimal("0")
     if price_amount and price_amount > 0:
         unit_price = price_amount
     desc_el = _first(item, "cac:Item", "Item")
-    desc = _text(_first(desc_el, "cbc:Description", "cbc:Name", "Description", "Name") if desc_el else None) or "Item"
+    desc = (
+        _text(
+            _first(desc_el, "cbc:Description", "cbc:Name", "Description", "Name")
+            if desc_el
+            else None
+        )
+        or "Item"
+    )
     return {
         "lineId": line_id,
         "quantity": qty,
@@ -93,7 +105,9 @@ def order_json_to_invoice_data(order_dict: dict, due_date: str = None) -> dict:
     root = _first(order_dict, "Order")
     if root is None:
         for v in order_dict.values():
-            if isinstance(v, dict) and (_first(v, "cac:BuyerCustomerParty") or _first(v, "cbc:IssueDate")):
+            if isinstance(v, dict) and (
+                _first(v, "cac:BuyerCustomerParty") or _first(v, "cbc:IssueDate")
+            ):
                 root = v
                 break
     if not root or not isinstance(root, dict):
@@ -109,7 +123,9 @@ def order_json_to_invoice_data(order_dict: dict, due_date: str = None) -> dict:
     if amt_el and isinstance(amt_el, dict):
         pay_el = _first(amt_el, "cbc:PayableAmount", "PayableAmount")
         if isinstance(pay_el, dict):
-            currency = _text(pay_el.get("@currencyID") or pay_el.get("currencyID")) or currency
+            currency = (
+                _text(pay_el.get("@currencyID") or pay_el.get("currencyID")) or currency
+            )
             total_amount = _decimal(pay_el.get("#text") or pay_el.get("value"))
         else:
             total_amount = _decimal(pay_el)

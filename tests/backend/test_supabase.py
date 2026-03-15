@@ -218,7 +218,9 @@ def test_order_xml_to_json_stored_then_to_invoice_xml(flask_client, sb):
         # 2. Map order JSON to InvoiceData shape and send to generate
         invoice_data = order_json_to_invoice_data(order_json)
         assert "supplier" in invoice_data and "customer" in invoice_data
-        assert invoice_data["supplier"].get("name") and invoice_data["customer"].get("name")
+        assert invoice_data["supplier"].get("name") and invoice_data["customer"].get(
+            "name"
+        )
         assert invoice_data["lines"]
 
         generate_resp = flask_client.post(
@@ -231,7 +233,11 @@ def test_order_xml_to_json_stored_then_to_invoice_xml(flask_client, sb):
         assert "<?xml" in invoice_xml_body
         assert "Invoice" in invoice_xml_body
         # Order example has IYT Corporation (buyer) and Consortial (seller)
-        assert "IYT" in invoice_xml_body or "Consortial" in invoice_xml_body or "Corporation" in invoice_xml_body
+        assert (
+            "IYT" in invoice_xml_body
+            or "Consortial" in invoice_xml_body
+            or "Corporation" in invoice_xml_body
+        )
 
         # 3. Verify invoice was stored: list and get
         list_resp = flask_client.get("/v1/invoices", headers={"APItoken": api_token})
