@@ -59,7 +59,6 @@ def test_login_success():
     email = generate_unique_email()
     password = "StrongPassword123!"
 
-    # First register user
     requests.post(f"{BASE_URL}/auth/register", json={
         "email": email,
         "password": password,
@@ -67,7 +66,6 @@ def test_login_success():
         "nameLast": "User"
     })
 
-    # Then login
     res = requests.post(f"{BASE_URL}/auth/login", json={
         "email": email,
         "password": password
@@ -83,7 +81,6 @@ def test_login_success():
 def test_login_wrong_password():
     email = generate_unique_email()
 
-    # Register
     requests.post(f"{BASE_URL}/auth/register", json={
         "email": email,
         "password": "StrongPassword123!",
@@ -91,7 +88,6 @@ def test_login_wrong_password():
         "nameLast": "User"
     })
 
-    # Attempt login with wrong password
     res = requests.post(f"{BASE_URL}/auth/login", json={
         "email": email,
         "password": "WrongPassword"
@@ -105,5 +101,37 @@ def test_login_user_not_found():
         "email": generate_unique_email(),
         "password": "StrongPassword123!"
     })
+
+    assert res.status_code == 401
+
+# ------------------------------ logout ------------------------------
+
+def test_logout_success():
+    email = generate_unique_email()
+    password = "StrongPassword123!"
+
+    register_res = requests.post(f"{BASE_URL}/auth/register", json={
+        "email": email,
+        "password": password,
+        "nameFirst": "Test",
+        "nameLast": "User"
+    })
+
+    token = register_res.json()["token"]
+
+    res = requests.post(
+        f"{BASE_URL}/auth/logout",
+        headers={"token": token}
+    )
+
+    assert res.status_code == 200
+    assert res.json()["status"] == "success"
+
+
+def test_logout_invalid_token():
+    res = requests.post(
+        f"{BASE_URL}/auth/logout",
+        headers={"token": "invalid-token"}
+    )
 
     assert res.status_code == 401
