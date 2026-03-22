@@ -1,0 +1,182 @@
+import requests
+import uuid
+import pytest
+from datetime import datetime
+
+BASE_URL = "https://api.orderms.tech/v1"
+
+
+# -------------------------- Helper Functions --------------------------
+
+def generate_unique_email():
+    return f"test_{uuid.uuid4()}@example.com"
+
+
+def register_and_get_token():
+    res = requests.post(f"{BASE_URL}/auth/register", json={
+        "email": generate_unique_email(),
+        "password": "StrongPassword123!",
+        "nameFirst": "Order",
+        "nameLast": "Tester"
+    })
+
+    assert res.status_code == 201
+    return res.json()["token"]
+
+
+def valid_order_payload():
+    return {
+        "ID": f"ORD-{uuid.uuid4()}",
+        "IssueDate": "2026-03-16",
+        "BuyerCustomerParty": {
+            "Party": {
+                "PartyName": [{"Name": "Test Buyer"}]
+            }
+        },
+        "SellerSupplierParty": {
+            "Party": {
+                "PartyName": [{"Name": "Test Seller"}]
+            }
+        },
+        "OrderLine": [
+            {
+                "LineItem": {
+                    "ID": "LINE-001",
+                    "Item": {
+                        "Description": ["Test Item"],
+                        "Name": "Test Product"
+                    }
+                }
+            }
+        ]
+    }
+
+
+# ---------------------------- Create Order ----------------------------
+
+def test_create_order_success_and_structure():
+    token = register_and_get_token()
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=valid_order_payload(),
+        headers={"token": token}
+    )
+
+    assert res.status_code == 201
+
+    data = res.json()
+
+    # Structure validation
+    assert isinstance(data, dict)
+    assert data["status"] == "success"
+    assert isinstance(data.get("orderId"), str)
+    assert isinstance(data.get("ublXmlUrl"), str)
+
+    # Basic format validation
+    assert data["ublXmlUrl"].startswith("/order/")
+    assert len(data["orderId"]) > 0
+
+
+def test_create_order_without_authentication():
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=valid_order_payload()
+    )
+
+    assert res.status_code == 401
+
+
+def test_create_order_with_invalid_token():
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=valid_order_payload(),
+        headers={"token": "invalid-token"}
+    )
+
+    assert res.status_code == 401
+
+
+def test_create_order_missing_required_fields():
+    token = register_and_get_token()
+
+    invalid_payloads = [
+        {},
+        {"ID": "ONLY-ID"},
+        {"IssueDate": "2026-03-16"},
+    ]
+
+    for payload in invalid_payloads:
+        res = requests.post(
+            f"{BASE_URL}/orders",
+            json=payload,
+            headers={"token": token}
+        )
+
+        assert res.status_code == 400
+
+
+def test_create_order_invalid_date_formats():
+    token = register_and_get_token()
+
+    invalid_dates = [
+        "16-03-2026",
+        "2026/03/16",
+        "invalid-date",
+        "",
+        None
+    ]
+
+    for date in invalid_dates:
+        payload = valid_order_payload()
+        payload["IssueDate"] = date
+
+        res = requests.post(
+            f"{BASE_URL}/orders",
+            json=payload,
+            headers={"token": token}
+        )
+
+        assert res.status_code == 400
+
+
+def test_create_order_empty_order_lines():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+    payload["OrderLine"] = []
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    assert res.status_code == 400
+
+
+def test_create_order_large_payload():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+
+    payload["OrderLine"] = [
+        {
+            "LineItem": {
+                "ID": f"LINE-{i}",
+                "Item": {
+                    "Description": ["Bulk item"],
+                    "Name": f"Product-{i}"
+                }
+            }
+        }
+        for i in range(50)
+    ]
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    assert res.status_code in [201, 500]

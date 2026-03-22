@@ -4,12 +4,12 @@ import uuid
 
 BASE_URL = "https://api.orderms.tech/v1"
 
-# ------------------------------ helper functions ------------------------------
+# -------------------------- Helper Functions --------------------------
 
 def generate_unique_email():
     return f"test_{uuid.uuid4()}@example.com"
 
-# ------------------------------ register ------------------------------
+# ------------------------------ Register ------------------------------
 
 def test_register_success():
     payload = {
@@ -53,7 +53,7 @@ def test_register_weak_password():
 
     assert res.status_code == 400
 
-# ------------------------------ login ------------------------------
+# ------------------------------ Login ------------------------------
 
 def test_login_success():
     email = generate_unique_email()
