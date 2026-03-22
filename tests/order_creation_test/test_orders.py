@@ -180,3 +180,86 @@ def test_create_order_large_payload():
     )
 
     assert res.status_code in [201, 500]
+
+# ----------------------------  Order List ----------------------------
+
+def test_list_orders_structure_and_types():
+    token = register_and_get_token()
+
+    requests.post(
+        f"{BASE_URL}/orders",
+        json=valid_order_payload(),
+        headers={"token": token}
+    )
+
+    res = requests.get(
+        f"{BASE_URL}/orders",
+        headers={"token": token}
+    )
+
+    assert res.status_code == 200
+
+    data = res.json()
+    assert isinstance(data, list)
+
+    for order in data:
+        assert "orderId" in order
+        assert "data" in order
+        assert "createdAt" in order
+        assert "url" in order
+
+        try:
+            datetime.fromisoformat(order["createdAt"].replace("Z", "+00:00"))
+        except Exception:
+            pytest.fail("Invalid datetime format")
+
+
+def test_list_orders_data_consistency():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+
+    create_res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    created_order_id = create_res.json()["orderId"]
+
+    list_res = requests.get(
+        f"{BASE_URL}/orders",
+        headers={"token": token}
+    )
+
+    orders = list_res.json()
+    found = any(order["orderId"] == created_order_id for order in orders)
+
+    assert found is True
+
+
+def test_list_orders_empty_case():
+    token = register_and_get_token()
+
+    res = requests.get(
+        f"{BASE_URL}/orders",
+        headers={"token": token}
+    )
+
+    assert res.status_code == 200
+    assert isinstance(res.json(), list)
+
+
+def test_list_orders_unauthorized():
+    res = requests.get(f"{BASE_URL}/orders")
+
+    assert res.status_code == 401
+
+
+def test_list_orders_invalid_token():
+    res = requests.get(
+        f"{BASE_URL}/orders",
+        headers={"token": "invalid-token"}
+    )
+
+    assert res.status_code == 401
