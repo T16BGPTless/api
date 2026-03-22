@@ -263,3 +263,45 @@ def test_list_orders_invalid_token():
     )
 
     assert res.status_code == 401
+
+# ----------------------------  Get Order ----------------------------
+
+def test_get_order_by_id():
+    # 1. Register user and get token
+    token = register_and_get_token()
+
+    # 2. Create an order using POST /orders
+    create_res = requests.post(
+        f"{BASE_URL}/orders",
+        json=valid_order_payload(),
+        headers={"token": token}
+    )
+    
+    # 3. Extract orderId from response IF available
+    order_id = create_res.json().get("orderId")
+
+    # 4. If orderId is missing, skip test (for black-box)
+    if not order_id:
+        pytest.skip("API did not return orderId")
+
+
+    # 5. Send GET request to /orders/{orderId}
+    res = requests.get(
+        f"{BASE_URL}/orders/{order_id}",
+        headers={"token": token}
+    )
+
+    # Put your assert stuff here :)
+    # ...
+
+# ----------------------------  Update Order -------------------------
+
+
+
+# ----------------------------  Delete Order --------------------------
+
+
+
+# --------------------------  Get order as UBL ------------------------
+
+
