@@ -57,6 +57,20 @@ def test_invoices_happy_path_and_delete(integration_client):
     assert get_after_delete.status_code in (403, 404)
 
 
+def test_generate_invoice_without_api_token_returns_401(unauth_client, api_base_url_explicitly_set):
+    if not api_base_url_explicitly_set:
+        pytest.skip("API_BASE_URL not set; skipping black-box HTTP call.")
+    resp = unauth_client.generate_invoice(valid_generate_invoice_payload())
+    assert resp.status_code == 401
+
+
+def test_orders_convert_without_api_token_returns_401(unauth_client, api_base_url_explicitly_set):
+    if not api_base_url_explicitly_set:
+        pytest.skip("API_BASE_URL not set; skipping black-box HTTP call.")
+    resp = unauth_client.convert_order(valid_order_xml_payload())
+    assert resp.status_code == 401
+
+
 def test_generate_invoice_validation_and_auth_errors(integration_client, base_url):
     bad_payload_resp = integration_client.generate_invoice(
         invalid_generate_invoice_payload_missing_supplier()
@@ -64,10 +78,6 @@ def test_generate_invoice_validation_and_auth_errors(integration_client, base_ur
     assert bad_payload_resp.status_code == 400
     bad_body = bad_payload_resp.json()
     assert "error" in bad_body and "message" in bad_body
-
-    unauth_client = InvoicingApiClient(base_url=base_url)
-    unauth_resp = unauth_client.generate_invoice(valid_generate_invoice_payload(), with_auth=False)
-    assert unauth_resp.status_code == 401
 
 
 def test_orders_convert_success_and_bad_xml(integration_client, base_url):
@@ -80,7 +90,3 @@ def test_orders_convert_success_and_bad_xml(integration_client, base_url):
     assert bad_xml_resp.status_code == 400
     bad_body = bad_xml_resp.json()
     assert "error" in bad_body and "message" in bad_body
-
-    unauth_client = InvoicingApiClient(base_url=base_url)
-    unauth_resp = unauth_client.convert_order(valid_order_xml_payload(), with_auth=False)
-    assert unauth_resp.status_code == 401

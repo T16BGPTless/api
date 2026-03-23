@@ -18,6 +18,11 @@ def base_url() -> str:
     """Integration target URL; defaults to preview from swagger."""
     return _env("API_BASE_URL") or "https://preview.gptless.au"
 
+@pytest.fixture
+def api_base_url_explicitly_set() -> bool:
+    """If not set, defaulting to the public API can fail in restricted CI/sandboxes."""
+    return bool(_env("API_BASE_URL"))
+
 
 @pytest.fixture
 def api_token() -> str:
@@ -35,9 +40,6 @@ def integration_client(base_url: str, api_token: str) -> InvoicingApiClient:
 
 
 @pytest.fixture
-def unit_client() -> InvoicingApiClient:
-    """Client for unit tests with placeholder credentials."""
-    return InvoicingApiClient(
-        base_url="https://example.test",
-        api_token="api-token",
-    )
+def unauth_client(base_url: str) -> InvoicingApiClient:
+    """Client without API token (used for 401/unauthorized checks)."""
+    return InvoicingApiClient(base_url=base_url)
