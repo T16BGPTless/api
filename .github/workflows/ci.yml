@@ -68,6 +68,9 @@ jobs:
         run: PYTHONPATH=. coverage run -m pytest tests/backend -v
 
       - name: Run gptless black-box tests
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          API_BASE_URL: https://preview.gptless.au
         run: pytest tests/gptless_tests -v
 
       - name: Coverage report
