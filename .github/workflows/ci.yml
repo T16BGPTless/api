@@ -65,7 +65,7 @@ jobs:
       - name: Run pytest with coverage
         env:
           VALID_DEV_TOKENS: ${{ secrets.VALID_DEV_TOKENS }}
-        run: PYTHONPATH=. coverage run -m pytest tests/backend -v
+        run: PYTHONPATH=. coverage run -m pytest tests -v
 
       - name: Start local Flask API (for black-box tests)
         run: |
@@ -76,8 +76,6 @@ jobs:
 
       - name: Run gptless black-box tests
         env:
-          # Seeded by `supabase/migrations/202603090001_api_routes_tables.sql`
-          # (see api_groups.api_token = 'abc123').
           API_TOKEN: abc123
           API_BASE_URL: http://127.0.0.1:5000
         run: pytest tests/gptless_tests -v
