@@ -67,6 +67,9 @@ jobs:
           VALID_DEV_TOKENS: ${{ secrets.VALID_DEV_TOKENS }}
         run: PYTHONPATH=. coverage run -m pytest tests/backend -v
 
+      - name: Run gptless black-box tests
+        run: pytest tests/gptless_tests -v
+
       - name: Coverage report
         run: coverage report -m
 
