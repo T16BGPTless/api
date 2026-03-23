@@ -9,4 +9,4 @@ Suggested structure:
 ## Black-box client tests (`tests/gptless_tests/`)
 
 - Integration tests against the real deployed API.
-- Tests require `API_TOKEN` to be set; otherwise they are skipped (to avoid accidental real HTTP calls in CI/local).
+- Tests require `API_TOKEN` and `API_BASE_URL` to be set; otherwise they are skipped (to avoid accidental real HTTP calls in CI/local).

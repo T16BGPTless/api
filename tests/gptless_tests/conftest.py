@@ -9,25 +9,27 @@ import pytest
 from gptless_tests.client import InvoicingApiClient
 
 
-def _env(name: str) -> str:
+def env(name: str) -> str:
     return os.environ.get(name, "").strip()
 
 
 @pytest.fixture
 def base_url() -> str:
-    """Integration target URL; defaults to preview from swagger."""
-    return _env("API_BASE_URL") or "https://preview.gptless.au"
+    """Black-box integration target URL.
 
-@pytest.fixture
-def api_base_url_explicitly_set() -> bool:
-    """If not set, defaulting to the public API can fail in restricted CI/sandboxes."""
-    return bool(_env("API_BASE_URL"))
+    We require `API_BASE_URL` to be set to avoid accidentally calling a down public
+    environment (e.g. preview) from CI.
+    """
+    val = env("API_BASE_URL")
+    if not val:
+        pytest.skip("API_BASE_URL is not set; skipping black-box HTTP calls.")
+    return val
 
 
 @pytest.fixture
 def api_token() -> str:
     """API token for integration tests requiring APItoken."""
-    token = _env("API_TOKEN")
+    token = env("API_TOKEN")
     if not token:
         pytest.skip("API_TOKEN is not set; skipping APItoken integration tests.")
     return token

@@ -67,10 +67,17 @@ jobs:
           VALID_DEV_TOKENS: ${{ secrets.VALID_DEV_TOKENS }}
         run: PYTHONPATH=. coverage run -m pytest tests/backend -v
 
+      - name: Start local Flask API (for black-box tests)
+        run: |
+          PYTHONPATH=. python -m app.app > /tmp/flask_api.log 2>&1 &
+          echo $! > /tmp/flask_api.pid
+          # Give Flask a moment to bind before running tests.
+          sleep 2
+
       - name: Run gptless black-box tests
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}
-          API_BASE_URL: https://preview.gptless.au
+          API_BASE_URL: http://127.0.0.1:5000
         run: pytest tests/gptless_tests -v
 
       - name: Coverage report

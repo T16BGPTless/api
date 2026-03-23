@@ -15,7 +15,7 @@ from gptless_tests.payloads import (
 )
 
 
-def _extract_invoice_id(xml_payload: str) -> str | None:
+def extract_invoice_id(xml_payload: str) -> str | None:
     try:
         root = ET.fromstring(xml_payload)
     except ET.ParseError:
@@ -32,7 +32,7 @@ def test_invoices_happy_path_and_delete(integration_client):
     assert create_resp.status_code == 201
     assert create_resp.body.strip().startswith("<?xml")
 
-    created_id = _extract_invoice_id(create_resp.body)
+    created_id = extract_invoice_id(create_resp.body)
     if not created_id:
         pytest.skip("Could not extract invoice ID from generated XML response.")
 
@@ -57,16 +57,12 @@ def test_invoices_happy_path_and_delete(integration_client):
     assert get_after_delete.status_code in (403, 404)
 
 
-def test_generate_invoice_without_api_token_returns_401(unauth_client, api_base_url_explicitly_set):
-    if not api_base_url_explicitly_set:
-        pytest.skip("API_BASE_URL not set; skipping black-box HTTP call.")
+def test_generate_invoice_without_api_token_returns_401(unauth_client):
     resp = unauth_client.generate_invoice(valid_generate_invoice_payload())
     assert resp.status_code == 401
 
 
-def test_orders_convert_without_api_token_returns_401(unauth_client, api_base_url_explicitly_set):
-    if not api_base_url_explicitly_set:
-        pytest.skip("API_BASE_URL not set; skipping black-box HTTP call.")
+def test_orders_convert_without_api_token_returns_401(unauth_client):
     resp = unauth_client.convert_order(valid_order_xml_payload())
     assert resp.status_code == 401
 
