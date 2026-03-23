@@ -53,9 +53,6 @@ jobs:
       - name: Start local Supabase
         run: supabase start
 
-      - name: Apply Supabase migrations (seed api_groups)
-        run: supabase db push
-
       - name: Export Supabase env for Python tests
         run: |
           eval $(supabase status -o env)
