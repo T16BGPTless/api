@@ -66,16 +66,21 @@ def test_create_order_success_and_structure():
     assert res.status_code == 201
 
     data = res.json()
+    result = data.get("result", data)  # fallback to top-level
 
     # Structure validation
-    assert isinstance(data, dict)
-    assert data["status"] == "success"
-    assert isinstance(data.get("orderId"), str)
-    assert isinstance(data.get("ublXmlUrl"), str)
+    assert isinstance(result, dict)
+    assert result.get("status") == "success"
+    assert isinstance(result.get("orderId"), str)
+    assert isinstance(result.get("ublXmlUrl"), str)
 
-    # Basic format validation
-    assert data["ublXmlUrl"].startswith("/order/")
-    assert len(data["orderId"]) > 0
+    # Validate URL format
+    ubl_url = result["ublXmlUrl"]
+    assert ubl_url.startswith("https://"), f"UBL URL should start with https://, got {ubl_url}"
+    assert ubl_url.endswith("/xml"), f"UBL URL should end with /xml, got {ubl_url}"
+
+    # Basic check on orderId length
+    assert len(result["orderId"]) > 0
 
 
 def test_create_order_without_authentication():
@@ -216,7 +221,6 @@ def test_list_orders_structure_and_types():
 
 def test_list_orders_data_consistency():
     token = register_and_get_token()
-
     payload = valid_order_payload()
 
     create_res = requests.post(
@@ -225,7 +229,10 @@ def test_list_orders_data_consistency():
         headers={"token": token}
     )
 
-    created_order_id = create_res.json()["orderId"]
+    data = create_res.json()
+    result = data.get("result", data)
+    created_order_id = result.get("orderId")
+    assert created_order_id is not None
 
     list_res = requests.get(
         f"{BASE_URL}/orders",
@@ -233,8 +240,7 @@ def test_list_orders_data_consistency():
     )
 
     orders = list_res.json()
-    found = any(order["orderId"] == created_order_id for order in orders)
-
+    found = any(order.get("orderId") == created_order_id for order in orders)
     assert found is True
 
 
