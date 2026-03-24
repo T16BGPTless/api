@@ -280,18 +280,14 @@ def test_get_order_by_id():
     # 3. Extract orderId from response IF available
     order_id = create_res.json().get("orderId")
 
-    # 4. If orderId is missing, skip test (for black-box)
-    if not order_id:
-        pytest.skip("API did not return orderId")
 
-
-    # 5. Send GET request to /orders/{orderId}
+    # 4. Send GET request to /orders/{orderId}
     res = requests.get(
         f"{BASE_URL}/orders/{order_id}",
         headers={"token": token}
     )
 
-    # Put your assert stuff here :)
+    # 5. Put your assert stuff here :)
     # ...
 
 # ----------------------------  Update Order -------------------------
