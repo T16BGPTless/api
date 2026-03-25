@@ -1,4 +1,16 @@
-"""Integration tests for the external API service (real HTTP calls)."""
+"""Integration tests for the external API service (real HTTP calls).
+
+Route coverage in this file (see ``app/routes`` for full API surface):
+
+- ``POST /v1/invoices/generate`` — create invoice (happy path, validation 400, unauth 401)
+- ``GET /v1/invoices`` — list invoice IDs
+- ``GET /v1/invoices/<id>`` — fetch XML (and after delete: 403/404)
+- ``DELETE /v1/invoices/<id>`` — soft-delete
+- ``POST /v1/orders/convert`` — order XML → JSON (success, bad XML 400, unauth 401)
+
+Not covered here: ``/v1/auth/*``, ``GET /`` (home redirect). Dev-only auth is tested under
+``tests/backend/``.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +19,6 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from gptless_tests.client import InvoicingApiClient
 from gptless_tests.payloads import (
     invalid_generate_invoice_payload_missing_supplier,
     valid_generate_invoice_payload,
@@ -28,6 +39,7 @@ def extract_invoice_id(xml_payload: str) -> str | None:
 
 
 def test_invoices_happy_path_and_delete(integration_client):
+    """Processes the following flow: generate → list → get → delete → get."""
     create_resp = integration_client.generate_invoice(valid_generate_invoice_payload())
     assert create_resp.status_code == 201
     assert create_resp.body.strip().startswith("<?xml")
@@ -58,16 +70,19 @@ def test_invoices_happy_path_and_delete(integration_client):
 
 
 def test_generate_invoice_without_api_token_returns_401(unauth_client):
+    """Route: ``POST /v1/invoices/generate`` (no ``APItoken`` header → 401)."""
     resp = unauth_client.generate_invoice(valid_generate_invoice_payload())
     assert resp.status_code == 401
 
 
 def test_orders_convert_without_api_token_returns_401(unauth_client):
+    """Route: ``POST /v1/orders/convert`` (no ``APItoken`` header → 401)."""
     resp = unauth_client.convert_order(valid_order_xml_payload())
     assert resp.status_code == 401
 
 
 def test_generate_invoice_validation_and_auth_errors(integration_client, base_url):
+    """Route: ``POST /v1/invoices/generate`` (invalid body → 400)."""
     bad_payload_resp = integration_client.generate_invoice(
         invalid_generate_invoice_payload_missing_supplier()
     )
@@ -77,6 +92,7 @@ def test_generate_invoice_validation_and_auth_errors(integration_client, base_ur
 
 
 def test_orders_convert_success_and_bad_xml(integration_client, base_url):
+    """Routes: ``POST /v1/orders/convert`` (200 success, 400 bad XML)."""
     success_resp = integration_client.convert_order(valid_order_xml_payload())
     assert success_resp.status_code == 200
     parsed = success_resp.json()
