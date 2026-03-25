@@ -276,7 +276,7 @@ def test_login_empty_email():
         "password": "StrongPassword123!"
     })
 
-    assert res.status_code in (400, 401)
+    assert res.status_code == 400
 
 
 def test_login_empty_password():
@@ -294,7 +294,7 @@ def test_login_empty_password():
         "password": ""
     })
 
-    assert res.status_code in (400, 401)
+    assert res.status_code == 400
 
 
 def test_login_non_string_email():
@@ -312,7 +312,7 @@ def test_login_non_string_password():
         "password": 12345678
     })
 
-    assert res.status_code in (400, 401)
+    assert res.status_code == 401
 
 # ------------------------------ logout ------------------------------
 
