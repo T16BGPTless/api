@@ -151,7 +151,7 @@ def test_register_missing_password():
 def test_register_password_less_than_8_chars():
     payload = {
         "email": generate_unique_email(),
-        "password": "Ab1!",  # < 8 chars
+        "password": "Ab1!",
         "nameFirst": "Test",
         "nameLast": "User"
     }
@@ -346,3 +346,52 @@ def test_logout_invalid_token():
 
     assert res.status_code == 401
     
+
+def test_logout_missing_token():
+    res = requests.post(f"{BASE_URL}/auth/logout")
+
+    assert res.status_code == 401
+
+
+def test_logout_empty_token():
+    res = requests.post(
+        f"{BASE_URL}/auth/logout",
+        headers={"token": ""}
+    )
+
+    assert res.status_code == 401
+
+
+def test_logout_malformed_token():
+    res = requests.post(
+        f"{BASE_URL}/auth/logout",
+        headers={"token": "12345"}
+    )
+
+    assert res.status_code == 401
+
+
+def test_logout_twice():
+    email = generate_unique_email()
+    password = "StrongPassword123!"
+
+    register_res = requests.post(f"{BASE_URL}/auth/register", json={
+        "email": email,
+        "password": password,
+        "nameFirst": "Test",
+        "nameLast": "User"
+    })
+
+    token = register_res.json()["token"]
+
+    res1 = requests.post(
+        f"{BASE_URL}/auth/logout",
+        headers={"token": token}
+    )
+    assert res1.status_code == 200
+
+    res2 = requests.post(
+        f"{BASE_URL}/auth/logout",
+        headers={"token": token}
+    )
+    assert res2.status_code == 401
