@@ -247,6 +247,73 @@ def test_login_user_not_found():
 
     assert res.status_code == 401
 
+
+def test_login_missing_email():
+    res = requests.post(f"{BASE_URL}/auth/login", json={
+        "password": "StrongPassword123!"
+    })
+
+    assert res.status_code == 400
+
+
+def test_login_missing_password():
+    res = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": generate_unique_email()
+    })
+
+    assert res.status_code == 400
+
+
+def test_login_missing_both_fields():
+    res = requests.post(f"{BASE_URL}/auth/login", json={})
+
+    assert res.status_code == 400
+
+
+def test_login_empty_email():
+    res = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": "",
+        "password": "StrongPassword123!"
+    })
+
+    assert res.status_code in (400, 401)
+
+
+def test_login_empty_password():
+    email = generate_unique_email()
+
+    requests.post(f"{BASE_URL}/auth/register", json={
+        "email": email,
+        "password": "StrongPassword123!",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    })
+
+    res = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": email,
+        "password": ""
+    })
+
+    assert res.status_code in (400, 401)
+
+
+def test_login_non_string_email():
+    res = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": 12345,
+        "password": "StrongPassword123!"
+    })
+
+    assert res.status_code == 400
+
+
+def test_login_non_string_password():
+    res = requests.post(f"{BASE_URL}/auth/login", json={
+        "email": generate_unique_email(),
+        "password": 12345678
+    })
+
+    assert res.status_code in (400, 401)
+
 # ------------------------------ logout ------------------------------
 
 def test_logout_success():
@@ -278,3 +345,4 @@ def test_logout_invalid_token():
     )
 
     assert res.status_code == 401
+    
