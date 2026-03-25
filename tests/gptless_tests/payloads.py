@@ -66,3 +66,11 @@ def valid_order_xml_payload() -> str:
     </cac:LineItem>
   </cac:OrderLine>
 </Order>"""
+
+
+def valid_recipient_email() -> str:
+    return "accounts@gptless.com"
+
+
+def invalid_recipient_email() -> str:
+    return "not-an-email"

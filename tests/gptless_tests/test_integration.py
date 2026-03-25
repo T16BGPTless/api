@@ -6,6 +6,7 @@ Route coverage in this file (see ``app/routes`` for full API surface):
 - ``GET /v1/invoices`` — list invoice IDs
 - ``GET /v1/invoices/<id>`` — fetch XML (and after delete: 403/404)
 - ``DELETE /v1/invoices/<id>`` — soft-delete
+- ``POST /v1/invoices/notify/<id>`` — recipient email validation + auth checks
 - ``POST /v1/orders/convert`` — order XML → JSON (success, bad XML 400, unauth 401)
 
 Not covered here: ``/v1/auth/*``, ``GET /`` (home redirect). Dev-only auth is tested under
@@ -22,6 +23,8 @@ import pytest
 from gptless_tests.payloads import (
     invalid_generate_invoice_payload_missing_supplier,
     valid_generate_invoice_payload,
+    invalid_recipient_email,
+    valid_recipient_email,
     valid_order_xml_payload,
 )
 
@@ -102,3 +105,21 @@ def test_orders_convert_success_and_bad_xml(integration_client, base_url):
     assert bad_xml_resp.status_code == 400
     bad_body = bad_xml_resp.json()
     assert "error" in bad_body and "message" in bad_body
+
+
+def test_notify_invoice_without_api_token_returns_401(unauth_client):
+    """Route: ``POST /v1/invoices/notify/<id>`` (no ``APItoken`` header → 401)."""
+    resp = unauth_client.notify_invoice(
+        "12345", recipient_email=valid_recipient_email, with_auth=False
+    )
+    assert resp.status_code == 401
+
+
+def test_notify_invoice_invalid_email_400(integration_client):
+    """Route: ``POST /v1/invoices/notify/<id>`` (invalid email → 400)."""
+    resp = integration_client.notify_invoice(
+        "12345", recipient_email=invalid_recipient_email
+    )
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"] == "BAD_REQUEST"

@@ -3,6 +3,7 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, Response
 from app.services.invoice_xml import build_invoice_xml
+from app.services.invoice_notify import convert_invoice_xml_to_pdf, is_valid_email, send_invoice_notification
 from app.routes.helpers import (
     sb_has_error,
     sb_execute,
@@ -264,3 +265,64 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
         return return_error("INTERNAL_SERVER_ERROR")
 
     return "", HTTPStatus.NO_CONTENT
+
+
+@invoices_bp.route("/v1/invoices/notify/<int:invoice_id>", methods=["POST"])
+def notify_invoice(invoice_id):
+    """
+    Notify a recipient with the invoice PDF attached.
+
+    Contract: requires `APItoken` header + JSON body { "recipientEmail": "..." }.
+    """
+    supabase, api_token, error = require_api_token()
+    if error is not None:
+        return error
+
+    body = request.get_json(silent=True) or {}
+    recipient_email = body.get("recipientEmail")
+    if not is_valid_email(recipient_email):
+        return (
+            jsonify({"error": "BAD_REQUEST", "message": "Missing or invalid input data"}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    group_id, err = get_group_id_from_token(supabase, api_token)
+    if err is not None:
+        return err
+
+    resp = (
+        supabase.table("api_invoices")
+        .select("owner_token, xml, deleted")
+        .eq("id", invoice_id)
+        .limit(1)
+    )
+    resp_exec = sb_execute(resp)
+    if resp_exec is None or sb_has_error(resp_exec):
+        return return_error("INTERNAL_SERVER_ERROR")
+
+    if not resp_exec.data:
+        return return_error("NOT_FOUND")
+
+    invoice = resp_exec.data[0]
+
+    if invoice.get("deleted"):
+        return return_error("NOT_FOUND")
+
+    if invoice.get("owner_token") != group_id:
+        return return_error("FORBIDDEN")
+
+    xml_str = invoice.get("xml") or ""
+    if not isinstance(xml_str, str) or not xml_str.strip():
+        return return_error("INTERNAL_SERVER_ERROR")
+
+    try:
+        pdf_bytes = convert_invoice_xml_to_pdf(xml_str)
+        send_invoice_notification(
+            recipient_email=recipient_email,
+            invoice_id=str(invoice_id),
+            pdf_bytes=pdf_bytes,
+        )
+    except Exception:  # pylint: disable=broad-exception-caught
+        return return_error("INTERNAL_SERVER_ERROR")
+
+    return jsonify({"success": True}), HTTPStatus.OK

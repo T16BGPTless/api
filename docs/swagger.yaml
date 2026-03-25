@@ -1044,7 +1044,7 @@ paths:
       - $ref: "#/components/parameters/InvoiceId"
 
     post:
-      tags: [Unimplemented (stretch goals/ideas)]
+      tags: [Invoices]
       summary: Send invoice notification
       description: |
         Creates an email from the given invoice, converts it into a pdf and sends it to a specified recipient.
