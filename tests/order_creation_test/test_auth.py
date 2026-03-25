@@ -27,6 +27,26 @@ def test_register_success():
     assert "userId" in data
     assert "token" in data
 
+def test_register_missing_first_name():
+    payload = {
+        "email": generate_unique_email(),
+        "password": "StrongPassword123!",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
+def test_register_missing_last_name():
+    payload = {
+        "email": generate_unique_email(),
+        "password": "StrongPassword123!",
+        "nameFirst": "Test"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
 
 def test_register_invalid_email():
     payload = {
@@ -41,6 +61,57 @@ def test_register_invalid_email():
     assert res.status_code == 400
 
 
+def test_register_non_string_email():
+    payload = {
+        "email": 12345,
+        "password": "StrongPassword123!",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
+def test_register_missing_email():
+    payload = {
+        "password": "StrongPassword123!",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+def test_register_duplicate_email():
+    email = generate_unique_email()
+
+    payload = {
+        "email": email,
+        "password": "StrongPassword123!",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res1 = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res1.status_code == 201
+
+    res2 = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res2.status_code == 400
+
+
+def test_register_empty_email():
+    payload = {
+        "email": "",
+        "password": "StrongPassword123!",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
 def test_register_weak_password():
     payload = {
         "email": generate_unique_email(),
@@ -52,6 +123,78 @@ def test_register_weak_password():
     res = requests.post(f"{BASE_URL}/auth/register", json=payload)
 
     assert res.status_code == 400
+
+
+def test_register_non_string_password():
+    payload = {
+        "email": generate_unique_email(),
+        "password": 12345678,
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
+def test_register_missing_password():
+    payload = {
+        "email": generate_unique_email(),
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
+def test_register_password_less_than_8_chars():
+    payload = {
+        "email": generate_unique_email(),
+        "password": "Ab1!",  # < 8 chars
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
+def test_register_password_no_letters():
+    payload = {
+        "email": generate_unique_email(),
+        "password": "12345678",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
+def test_register_password_no_numbers():
+    payload = {
+        "email": generate_unique_email(),
+        "password": "PasswordOnly",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
+
+def test_register_empty_password():
+    payload = {
+        "email": generate_unique_email(),
+        "password": "",
+        "nameFirst": "Test",
+        "nameLast": "User"
+    }
+
+    res = requests.post(f"{BASE_URL}/auth/register", json=payload)
+    assert res.status_code == 400
+
 
 # ------------------------------ Login ------------------------------
 
