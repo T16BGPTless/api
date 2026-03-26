@@ -110,7 +110,7 @@ def test_orders_convert_success_and_bad_xml(integration_client, base_url):
 def test_notify_invoice_without_api_token_returns_401(unauth_client):
     """Route: ``POST /v1/invoices/notify/<id>`` (no ``APItoken`` header → 401)."""
     resp = unauth_client.notify_invoice(
-        "12345", recipient_email=valid_recipient_email, with_auth=False
+        "12345", recipient_email=valid_recipient_email(), with_auth=False
     )
     assert resp.status_code == 401
 
@@ -118,7 +118,7 @@ def test_notify_invoice_without_api_token_returns_401(unauth_client):
 def test_notify_invoice_invalid_email_400(integration_client):
     """Route: ``POST /v1/invoices/notify/<id>`` (invalid email → 400)."""
     resp = integration_client.notify_invoice(
-        "12345", recipient_email=invalid_recipient_email
+        "12345", recipient_email=invalid_recipient_email()
     )
     assert resp.status_code == 400
     body = resp.json()
