@@ -327,6 +327,14 @@ def notify_invoice(invoice_id):
             pdf_bytes=pdf_bytes,
         )
     except Exception:  # pylint: disable=broad-exception-caught
-        return return_error("INTERNAL_SERVER_ERROR")
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Failed to send invoice notification",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
 
     return jsonify({"success": True}), HTTPStatus.OK
