@@ -3,7 +3,11 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, Response
 from app.services.invoice_xml import build_invoice_xml
-from app.services.invoice_notify import convert_invoice_xml_to_pdf, is_valid_email, send_invoice_notification
+from app.services.invoice_notify import (
+    convert_invoice_xml_to_pdf,
+    is_valid_email,
+    send_invoice_notification,
+)
 from app.routes.helpers import (
     sb_has_error,
     sb_execute,
