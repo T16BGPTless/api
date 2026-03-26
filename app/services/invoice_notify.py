@@ -22,7 +22,8 @@ def is_valid_email(value: object) -> bool:
         return False
 
 
-def _require_env(name: str) -> str:
+def require_env(name: str) -> str:
+    """Require an environment variable to be set."""
     value = os.environ.get(name, "").strip()
     if not value:
         raise RuntimeError(f"Missing required environment variable: {name}")
@@ -37,7 +38,7 @@ def convert_invoice_xml_to_pdf(xml_str: str) -> bytes:
     - import/base64 -> convert (output_format=pdf) -> export/url
     - download the exported PDF from the signed URL
     """
-    api_key = _require_env("CLOUDCONVERT_API_KEY")
+    api_key = require_env("CLOUDCONVERT_API_KEY")
 
     # CloudConvert supports importing base64 for reasonably sized files.
     b64 = base64.b64encode(xml_str.encode("utf-8")).decode("ascii")
@@ -120,8 +121,8 @@ def send_invoice_notification(
     pdf_bytes: bytes,
 ) -> None:
     """Send the invoice PDF to `recipient_email` using Resend."""
-    api_key = _require_env("RESEND_API_KEY")
-    from_email = _require_env("RESEND_FROM_EMAIL")
+    api_key = require_env("RESEND_API_KEY")
+    from_email = require_env("RESEND_FROM_EMAIL")
 
     subject = f"Invoice {invoice_id}"
     html = (

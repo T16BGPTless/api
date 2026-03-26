@@ -31,6 +31,7 @@ def test_notify_invoice_success_200(client):
     xml = "<Invoice><ID>12345</ID></Invoice>"
 
     with (
+        patch("app.routes.invoices.is_valid_email", return_value=True),
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
         patch("app.routes.invoices.get_group_id_from_token", return_value=(10, None)),
@@ -86,6 +87,7 @@ def test_notify_invoice_missing_api_token_401(client):
 
 def test_notify_invoice_not_found_404(client):
     with (
+        patch("app.routes.invoices.is_valid_email", return_value=True),
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
         patch("app.routes.invoices.get_group_id_from_token", return_value=(10, None)),
@@ -103,6 +105,7 @@ def test_notify_invoice_not_found_404(client):
 
 def test_notify_invoice_wrong_owner_403(client):
     with (
+        patch("app.routes.invoices.is_valid_email", return_value=True),
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
         patch("app.routes.invoices.get_group_id_from_token", return_value=(10, None)),
@@ -125,6 +128,7 @@ def test_notify_invoice_wrong_owner_403(client):
 
 def test_notify_invoice_conversion_failure_500(client):
     with (
+        patch("app.routes.invoices.is_valid_email", return_value=True),
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
         patch("app.routes.invoices.is_valid_api_token", return_value=True),
         patch("app.routes.invoices.get_group_id_from_token", return_value=(10, None)),
