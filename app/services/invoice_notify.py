@@ -90,15 +90,24 @@ def convert_invoice_xml_to_pdf(xml_str: str) -> bytes:
             status = status_data.get("status")
 
             if status == "finished":
-                for task in status_data.get("tasks") or []:
+                tasks_data = status_data.get("tasks") or []
+                export_task = next(
+                    (
+                        t
+                        for t in tasks_data
+                        if t.get("name") == "export-invoice"
+                        or t.get("operation") == "export/url"
+                    ),
+                    None,
+                )
+                if export_task:
                     # export/url task holds the signed download URL in result.files[0].url
-                    result = task.get("result") or {}
+                    result = export_task.get("result") or {}
                     files = result.get("files") or []
                     if files:
                         candidate = files[0].get("url")
                         if candidate:
                             pdf_url = candidate
-                            break
                 break
 
             if status in ("error", "failed"):
