@@ -66,7 +66,7 @@ def test_create_order_success_and_structure():
     assert res.status_code == 201
 
     data = res.json()
-    result = data.get("result", data)  # fallback to top-level
+    result = data.get("result", data)
 
     # Structure validation
     assert isinstance(result, dict)
@@ -79,7 +79,6 @@ def test_create_order_success_and_structure():
     assert ubl_url.startswith("https://"), f"UBL URL should start with https://, got {ubl_url}"
     assert ubl_url.endswith("/xml"), f"UBL URL should end with /xml, got {ubl_url}"
 
-    # Basic check on orderId length
     assert len(result["orderId"]) > 0
 
 
@@ -87,6 +86,16 @@ def test_create_order_without_authentication():
     res = requests.post(
         f"{BASE_URL}/orders",
         json=valid_order_payload()
+    )
+
+    assert res.status_code == 401
+
+
+def test_create_order_empty_token():
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=valid_order_payload(),
+        headers={"token": ""}
     )
 
     assert res.status_code == 401
@@ -121,6 +130,81 @@ def test_create_order_missing_required_fields():
         assert res.status_code == 400
 
 
+def test_create_order_orderline_empty_list():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+    payload["OrderLine"] = []
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    assert res.status_code == 400
+
+
+def test_create_order_missing_item():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+    payload["OrderLine"][0]["LineItem"].pop("Item")
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    assert res.status_code == 400
+
+
+def test_create_order_malformed_line_item():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+    payload["OrderLine"] = [{}]
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    assert res.status_code == 400
+
+
+def test_create_order_orderline_not_list():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+    payload["OrderLine"] = "not-a-list"
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    assert res.status_code == 400
+
+
+def test_create_order_invalid_types():
+    token = register_and_get_token()
+
+    payload = valid_order_payload()
+    payload["IssueDate"] = 12345  # invalid type
+
+    res = requests.post(
+        f"{BASE_URL}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
+    assert res.status_code == 400
+
+
 def test_create_order_invalid_date_formats():
     token = register_and_get_token()
 
@@ -143,21 +227,6 @@ def test_create_order_invalid_date_formats():
         )
 
         assert res.status_code == 400
-
-
-def test_create_order_empty_order_lines():
-    token = register_and_get_token()
-
-    payload = valid_order_payload()
-    payload["OrderLine"] = []
-
-    res = requests.post(
-        f"{BASE_URL}/orders",
-        json=payload,
-        headers={"token": token}
-    )
-
-    assert res.status_code == 400
 
 
 def test_create_order_large_payload():
@@ -184,7 +253,8 @@ def test_create_order_large_payload():
         headers={"token": token}
     )
 
-    assert res.status_code in [201, 500]
+    assert res.status_code == 201
+
 
 # ----------------------------  Order List ----------------------------
 
