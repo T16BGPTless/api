@@ -193,7 +193,7 @@ def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
 
     resp = (
         supabase.table("api_invoices")
-        .select("owner_token, invoice_data, deleted")
+        .select("owner_token, xml, invoice_data, deleted")
         .eq("id", invoice_id)
         .limit(1)
     )
@@ -218,11 +218,18 @@ def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if invoice.get("owner_token") != group_id:
         return return_error("FORBIDDEN")
 
-    return Response(
-        invoice.get("xml") or "",
-        mimetype="application/xml",
-        status=HTTPStatus.OK,
-    )
+    xml_str = invoice.get("xml")
+    if not isinstance(xml_str, str) or not xml_str.strip():
+        # Fallback: rebuild XML from stored invoice_data
+        invoice_data = invoice.get("invoice_data")
+        if isinstance(invoice_data, dict) and invoice_data:
+            invoice_data = invoice_data.copy()
+            invoice_data["invoiceID"] = str(invoice_id)
+            xml_str = build_invoice_xml(invoice_data)
+        else:
+            xml_str = ""
+
+    return Response(xml_str, mimetype="application/xml", status=HTTPStatus.OK)
 
 
 # ------------------- DELETE /v1/invoices/<int:invoice_id> -------------------
