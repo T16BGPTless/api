@@ -138,7 +138,9 @@ def test_notify_invoice_success_200(integration_client):
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()
     resend_from = os.environ.get("RESEND_FROM_EMAIL", "").strip()
     if not (resend_to and resend_key and resend_from):
-        pytest.skip("Resend env vars not set; skipping notify success integration test.")
+        pytest.skip(
+            "Resend env vars not set; skipping notify success integration test."
+        )
 
     create_resp = integration_client.generate_invoice(valid_generate_invoice_payload())
     assert create_resp.status_code == 201
@@ -146,7 +148,9 @@ def test_notify_invoice_success_200(integration_client):
     if not created_id:
         pytest.skip("Could not extract invoice ID from generated XML response.")
 
-    notify_resp = integration_client.notify_invoice(created_id, recipient_email=resend_to)
+    notify_resp = integration_client.notify_invoice(
+        created_id, recipient_email=resend_to
+    )
     if notify_resp.status_code == 500:
         body = notify_resp.json() or {}
         msg = body.get("message", "")

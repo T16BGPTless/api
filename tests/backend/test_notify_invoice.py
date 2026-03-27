@@ -68,11 +68,11 @@ def test_notify_invoice_success_200(client):
         # (This route test still mocks the send, but keeps the payload consistent.)
         resend_to = "accounts@example.com"
         with patch.dict("os.environ", {"RESEND_TO_EMAIL": resend_to}, clear=False):
-        resp = client.post(
-            f"/v1/invoices/notify/{invoice_id}",
-            json={"recipientEmail": resend_to},
-            headers={"APItoken": "valid-token"},
-        )
+            resp = client.post(
+                f"/v1/invoices/notify/{invoice_id}",
+                json={"recipientEmail": resend_to},
+                headers={"APItoken": "valid-token"},
+            )
 
     assert resp.status_code == HTTPStatus.OK
     assert resp.get_json()["success"] is True
