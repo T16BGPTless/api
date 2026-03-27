@@ -51,7 +51,10 @@ jobs:
           version: latest
 
       - name: Start local Supabase
-        run: supabase start & supabase reset
+        run: supabase start
+
+      - name: Apply migrations and reset DB
+        run: supabase db reset
 
       - name: Export Supabase env for Python tests
         run: |
