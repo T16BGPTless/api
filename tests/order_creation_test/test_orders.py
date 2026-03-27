@@ -194,7 +194,7 @@ def test_create_order_invalid_types():
     token = register_and_get_token()
 
     payload = valid_order_payload()
-    payload["IssueDate"] = 12345  # invalid type
+    payload["IssueDate"] = 12345
 
     res = requests.post(
         f"{BASE_URL}/orders",
