@@ -65,7 +65,7 @@ jobs:
       - name: Run pytest with coverage
         env:
           VALID_DEV_TOKENS: ${{ secrets.VALID_DEV_TOKENS }}
-        run: PYTHONPATH=. coverage run -m pytest tests -v
+        run: PYTHONPATH=. coverage run -m pytest tests/backend -v
 
       - name: Start local Flask API (for black-box tests)
         run: |

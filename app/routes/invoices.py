@@ -293,7 +293,9 @@ def notify_invoice(invoice_id):
     recipient_email = body.get("recipientEmail")
     if not is_valid_email(recipient_email):
         return (
-            jsonify({"error": "BAD_REQUEST", "message": "Missing or invalid input data"}),
+            jsonify(
+                {"error": "BAD_REQUEST", "message": "Missing or invalid input data"}
+            ),
             HTTPStatus.BAD_REQUEST,
         )
 

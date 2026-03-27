@@ -117,7 +117,9 @@ def send_invoice_notification(
     }
 
     with httpx.Client(timeout=30) as client:
-        resp = client.post("https://api.resend.com/emails", headers=headers, json=payload)
+        resp = client.post(
+            "https://api.resend.com/emails", headers=headers, json=payload
+        )
         resp.raise_for_status()
 
         # Resend returns JSON; we don't need the exact content for the route contract.

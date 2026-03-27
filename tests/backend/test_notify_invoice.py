@@ -36,7 +36,12 @@ def test_notify_invoice_success_200(client):
         "supplier": {"name": "ACME Pty Ltd", "ABN": "12345678901"},
         "customer": {"name": "Example Co", "ABN": "10987654321"},
         "lines": [
-            {"description": "Widget", "quantity": 1, "unitPrice": "100.00", "lineTotal": "100.00"}
+            {
+                "description": "Widget",
+                "quantity": 1,
+                "unitPrice": "100.00",
+                "lineTotal": "100.00",
+            }
         ],
     }
 
@@ -48,7 +53,9 @@ def test_notify_invoice_success_200(client):
         patch(
             "app.routes.invoices.sb_execute",
             return_value=MockResponse(
-                data=[{"owner_token": 10, "invoice_data": invoice_data, "deleted": False}]
+                data=[
+                    {"owner_token": 10, "invoice_data": invoice_data, "deleted": False}
+                ]
             ),
         ),
         patch(
@@ -98,6 +105,8 @@ def test_notify_invoice_missing_or_empty_recipient_email_400(client, payload):
     assert resp.status_code == HTTPStatus.BAD_REQUEST
     body = resp.get_json()
     assert body["error"] == "BAD_REQUEST"
+
+
 def test_notify_invoice_missing_api_token_401(client):
     with (
         patch("app.routes.invoices.get_db", return_value=MagicMock()),
@@ -137,7 +146,13 @@ def test_notify_invoice_wrong_owner_403(client):
         patch(
             "app.routes.invoices.sb_execute",
             return_value=MockResponse(
-                data=[{"owner_token": 999, "invoice_data": {"issueDate": "2026-03-25"}, "deleted": False}]
+                data=[
+                    {
+                        "owner_token": 999,
+                        "invoice_data": {"issueDate": "2026-03-25"},
+                        "deleted": False,
+                    }
+                ]
             ),
         ),
     ):
@@ -160,7 +175,13 @@ def test_notify_invoice_conversion_failure_500(client):
         patch(
             "app.routes.invoices.sb_execute",
             return_value=MockResponse(
-                data=[{"owner_token": 10, "invoice_data": {"issueDate": "2026-03-25"}, "deleted": False}]
+                data=[
+                    {
+                        "owner_token": 10,
+                        "invoice_data": {"issueDate": "2026-03-25"},
+                        "deleted": False,
+                    }
+                ]
             ),
         ),
         patch(
@@ -176,4 +197,3 @@ def test_notify_invoice_conversion_failure_500(client):
 
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert resp.get_json()["error"] == "INTERNAL_SERVER_ERROR"
-
