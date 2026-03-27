@@ -281,8 +281,10 @@ def test_list_orders_structure_and_types():
         assert "orderId" in order
         assert "data" in order
         assert "createdAt" in order
+        assert "modifiedAt" in order
         assert "url" in order
-
+        assert order["url"].startswith("https://")
+        
         try:
             datetime.fromisoformat(order["createdAt"].replace("Z", "+00:00"))
         except Exception:
@@ -339,6 +341,16 @@ def test_list_orders_invalid_token():
     )
 
     assert res.status_code == 401
+
+
+def test_list_orders_empty_token():
+    res = requests.get(
+        f"{BASE_URL}/orders",
+        headers={"token": ""}
+    )
+
+    assert res.status_code == 401
+
 
 # ----------------------------  Get Order ----------------------------
 
