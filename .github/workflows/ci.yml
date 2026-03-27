@@ -51,7 +51,7 @@ jobs:
           version: latest
 
       - name: Start local Supabase
-        run: supabase start
+        run: supabase start & supabase reset
 
       - name: Export Supabase env for Python tests
         run: |
