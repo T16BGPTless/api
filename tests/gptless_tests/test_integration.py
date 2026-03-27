@@ -15,6 +15,7 @@ Not covered here: ``/v1/auth/*``, ``GET /`` (home redirect). Dev-only auth is te
 
 from __future__ import annotations
 
+import os
 import time
 import xml.etree.ElementTree as ET
 
@@ -123,3 +124,29 @@ def test_notify_invoice_invalid_email_400(integration_client):
     assert resp.status_code == 400
     body = resp.json()
     assert body["error"] == "BAD_REQUEST"
+
+
+def test_notify_invoice_success_200(integration_client):
+    """Route: ``POST /v1/invoices/notify/<id>`` (happy path → 200).
+
+    This sends a real email via Resend. To avoid spamming arbitrary recipients, the
+    service overrides the outbound recipient to `RESEND_TO_EMAIL` when set.
+    We still provide a valid recipientEmail input, and we use `RESEND_TO_EMAIL`
+    itself so deliverability checks pass.
+    """
+    resend_to = os.environ.get("RESEND_TO_EMAIL", "").strip()
+    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    resend_from = os.environ.get("RESEND_FROM_EMAIL", "").strip()
+    if not (resend_to and resend_key and resend_from):
+        pytest.skip("Resend env vars not set; skipping notify success integration test.")
+
+    create_resp = integration_client.generate_invoice(valid_generate_invoice_payload())
+    assert create_resp.status_code == 201
+    created_id = extract_invoice_id(create_resp.body)
+    if not created_id:
+        pytest.skip("Could not extract invoice ID from generated XML response.")
+
+    notify_resp = integration_client.notify_invoice(created_id, recipient_email=resend_to)
+    assert notify_resp.status_code == 200
+    body = notify_resp.json()
+    assert body.get("success") is True
