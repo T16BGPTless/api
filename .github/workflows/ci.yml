@@ -61,12 +61,7 @@ jobs:
 
       - name: Run pgTAP database tests
         run: supabase test db
-
-      - name: Run pytest with coverage
-        env:
-          VALID_DEV_TOKENS: ${{ secrets.VALID_DEV_TOKENS }}
-        run: PYTHONPATH=. coverage run -m pytest tests/backend -v
-
+      
       - name: Start local Flask API (for black-box tests)
         run: |
           PYTHONPATH=. python -m app.app > /tmp/flask_api.log 2>&1 &
@@ -74,11 +69,15 @@ jobs:
           # Give Flask a moment to bind before running tests.
           sleep 2
 
-      - name: Run gptless black-box tests
+      - name: Run pytest with coverage
         env:
-          API_TOKEN: abc123
+          VALID_DEV_TOKENS: ${{ secrets.VALID_DEV_TOKENS }}
           API_BASE_URL: http://127.0.0.1:5000
-        run: pytest tests/gptless_tests -v
+          API_TOKEN: abc123
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          RESEND_TO_EMAIL: ${{ secrets.RESEND_TO_EMAIL }}
+        run: PYTHONPATH=. coverage run -m pytest tests -v
 
       - name: Coverage report
         run: coverage report -m
