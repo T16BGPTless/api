@@ -4,7 +4,7 @@ from http import HTTPStatus
 from flask import Blueprint, jsonify, request, Response
 from app.services.invoice_xml import build_invoice_xml
 from app.services.invoice_notify import (
-    convert_invoice_xml_to_pdf,
+    invoice_data_to_pdf_bytes,
     is_valid_email,
     send_invoice_notification,
 )
@@ -193,7 +193,7 @@ def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
 
     resp = (
         supabase.table("api_invoices")
-        .select("owner_token, xml, deleted")
+        .select("owner_token, invoice_data, deleted")
         .eq("id", invoice_id)
         .limit(1)
     )
@@ -315,12 +315,14 @@ def notify_invoice(invoice_id):
     if invoice.get("owner_token") != group_id:
         return return_error("FORBIDDEN")
 
-    xml_str = invoice.get("xml") or ""
-    if not isinstance(xml_str, str) or not xml_str.strip():
+    invoice_data = invoice.get("invoice_data")
+    if not isinstance(invoice_data, dict) or not invoice_data:
         return return_error("INTERNAL_SERVER_ERROR")
 
     try:
-        pdf_bytes = convert_invoice_xml_to_pdf(xml_str)
+        pdf_bytes = invoice_data_to_pdf_bytes(
+            invoice_id=str(invoice_id), invoice_data=invoice_data
+        )
         send_invoice_notification(
             recipient_email=recipient_email,
             invoice_id=str(invoice_id),

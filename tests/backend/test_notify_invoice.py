@@ -28,7 +28,17 @@ class MockResponse:
 
 def test_notify_invoice_success_200(client):
     invoice_id = 12345
-    xml = "<Invoice><ID>12345</ID></Invoice>"
+    invoice_data = {
+        "issueDate": "2026-03-25",
+        "dueDate": "2026-04-01",
+        "currency": "AUD",
+        "totalAmount": "110.00",
+        "supplier": {"name": "ACME Pty Ltd", "ABN": "12345678901"},
+        "customer": {"name": "Example Co", "ABN": "10987654321"},
+        "lines": [
+            {"description": "Widget", "quantity": 1, "unitPrice": "100.00", "lineTotal": "100.00"}
+        ],
+    }
 
     with (
         patch("app.routes.invoices.is_valid_email", return_value=True),
@@ -38,11 +48,11 @@ def test_notify_invoice_success_200(client):
         patch(
             "app.routes.invoices.sb_execute",
             return_value=MockResponse(
-                data=[{"owner_token": 10, "xml": xml, "deleted": False}]
+                data=[{"owner_token": 10, "invoice_data": invoice_data, "deleted": False}]
             ),
         ),
         patch(
-            "app.routes.invoices.convert_invoice_xml_to_pdf",
+            "app.routes.invoices.invoice_data_to_pdf_bytes",
             return_value=b"%PDF-FAKE%",
         ),
         patch("app.routes.invoices.send_invoice_notification", return_value=None),
@@ -127,7 +137,7 @@ def test_notify_invoice_wrong_owner_403(client):
         patch(
             "app.routes.invoices.sb_execute",
             return_value=MockResponse(
-                data=[{"owner_token": 999, "xml": "<Invoice/>", "deleted": False}]
+                data=[{"owner_token": 999, "invoice_data": {"issueDate": "2026-03-25"}, "deleted": False}]
             ),
         ),
     ):
@@ -150,11 +160,11 @@ def test_notify_invoice_conversion_failure_500(client):
         patch(
             "app.routes.invoices.sb_execute",
             return_value=MockResponse(
-                data=[{"owner_token": 10, "xml": "<Invoice/>", "deleted": False}]
+                data=[{"owner_token": 10, "invoice_data": {"issueDate": "2026-03-25"}, "deleted": False}]
             ),
         ),
         patch(
-            "app.routes.invoices.convert_invoice_xml_to_pdf",
+            "app.routes.invoices.invoice_data_to_pdf_bytes",
             side_effect=RuntimeError("CloudConvert failure"),
         ),
     ):

@@ -1,14 +1,15 @@
-"""Invoice notification helpers (CloudConvert -> PDF, Resend -> email)."""
+"""Invoice notification helpers (invoice_data -> HTML -> PDF, Resend -> email)."""
 
 from __future__ import annotations
 
 import base64
+import io
 import os
-import time
-from typing import Any
 
 import httpx
 from email_validator import EmailNotValidError, validate_email
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from xhtml2pdf import pisa
 
 
 def is_valid_email(value: object) -> bool:
@@ -30,97 +31,47 @@ def require_env(name: str) -> str:
     return value
 
 
-def convert_invoice_xml_to_pdf(xml_str: str) -> bytes:
-    """
-    Convert UBL invoice XML to a PDF using CloudConvert.
+def render_invoice_html(*, invoice_id: str, invoice_data: dict) -> str:
+    """Render invoice HTML from stored `invoice_data`."""
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    templates_dir = os.path.join(base_dir, "templates")
+    env = Environment(
+        loader=FileSystemLoader(templates_dir),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+    template = env.get_template("invoice_pdf.html")
 
-    CloudConvert flow:
-    - import/base64 -> convert (output_format=pdf) -> export/url
-    - download the exported PDF from the signed URL
-    """
-    api_key = require_env("CLOUDCONVERT_API_KEY")
+    supplier = invoice_data.get("supplier") or {}
+    customer = invoice_data.get("customer") or {}
+    lines = invoice_data.get("lines") or []
 
-    # CloudConvert supports importing base64 for reasonably sized files.
-    b64 = base64.b64encode(xml_str.encode("utf-8")).decode("ascii")
+    return template.render(
+        invoice_id=invoice_id,
+        issue_date=invoice_data.get("issueDate", ""),
+        due_date=invoice_data.get("dueDate", ""),
+        currency=invoice_data.get("currency", ""),
+        total_amount=invoice_data.get("totalAmount", ""),
+        supplier_name=supplier.get("name", ""),
+        supplier_abn=supplier.get("ABN", ""),
+        customer_name=customer.get("name", ""),
+        customer_abn=customer.get("ABN", ""),
+        lines=lines,
+    )
 
-    tasks: dict[str, Any] = {
-        "import-invoice": {
-            "operation": "import/base64",
-            "file": b64,
-            "filename": "invoice.xml",
-        },
-        "convert-invoice": {
-            "operation": "convert",
-            "input": "import-invoice",
-            "output_format": "pdf",
-        },
-        "export-invoice": {
-            "operation": "export/url",
-            "input": "convert-invoice",
-        },
-    }
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+def convert_html_to_pdf_bytes(html: str) -> bytes:
+    """Convert HTML to PDF bytes using xhtml2pdf."""
+    out = io.BytesIO()
+    result = pisa.CreatePDF(src=html, dest=out, encoding="utf-8")
+    if result.err:
+        raise RuntimeError("Failed to render PDF")
+    return out.getvalue()
 
-    with httpx.Client(timeout=20) as client:
-        create = client.post(
-            "https://api.cloudconvert.com/v2/jobs",
-            headers=headers,
-            json={"tasks": tasks},
-        )
-        create.raise_for_status()
-        create_data = create.json().get("data") or {}
-        job_id = create_data.get("id")
-        if not job_id:
-            raise RuntimeError("CloudConvert did not return a job id")
 
-        deadline_s = time.time() + 30  # keep polling bounded in serverless
-        pdf_url: str | None = None
-
-        while time.time() < deadline_s:
-            status_resp = client.get(
-                f"https://sync.api.cloudconvert.com/v2/jobs/{job_id}",
-                headers=headers,
-            )
-            status_resp.raise_for_status()
-            status_data = status_resp.json().get("data") or {}
-            status = status_data.get("status")
-
-            if status == "finished":
-                tasks_data = status_data.get("tasks") or []
-                export_task = next(
-                    (
-                        t
-                        for t in tasks_data
-                        if t.get("name") == "export-invoice"
-                        or t.get("operation") == "export/url"
-                    ),
-                    None,
-                )
-                if export_task:
-                    # export/url task holds the signed download URL in result.files[0].url
-                    result = export_task.get("result") or {}
-                    files = result.get("files") or []
-                    if files:
-                        candidate = files[0].get("url")
-                        if candidate:
-                            pdf_url = candidate
-                break
-
-            if status in ("error", "failed"):
-                raise RuntimeError(f"CloudConvert job failed: {status_data}")
-
-            time.sleep(1.0)
-
-        if not pdf_url:
-            raise RuntimeError("CloudConvert did not produce a PDF download URL in time")
-
-        pdf_resp = client.get(pdf_url, timeout=30)
-        pdf_resp.raise_for_status()
-        return pdf_resp.content
+def invoice_data_to_pdf_bytes(*, invoice_id: str, invoice_data: dict) -> bytes:
+    """High-level helper to render HTML and convert to PDF."""
+    html = render_invoice_html(invoice_id=invoice_id, invoice_data=invoice_data)
+    return convert_html_to_pdf_bytes(html)
 
 
 def send_invoice_notification(
@@ -132,6 +83,8 @@ def send_invoice_notification(
     """Send the invoice PDF to `recipient_email` using Resend."""
     api_key = require_env("RESEND_API_KEY")
     from_email = require_env("RESEND_FROM_EMAIL")
+    override_to = os.environ.get("RESEND_TO_EMAIL", "").strip()
+    to_email = override_to or recipient_email
 
     subject = f"Invoice {invoice_id}"
     html = (
@@ -145,7 +98,7 @@ def send_invoice_notification(
 
     payload = {
         "from": from_email,
-        "to": [recipient_email],
+        "to": [to_email],
         "subject": subject,
         "html": html,
         "text": text,
