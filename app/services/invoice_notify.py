@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import base64
 import io
+import logging
 import os
 
 import httpx
 from email_validator import EmailNotValidError, validate_email
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from xhtml2pdf import pisa
+
+logger = logging.getLogger(__name__)
+
+# Resend may return 403 (e.g. error code 1010) if User-Agent is missing or not accepted.
+_RESEND_USER_AGENT = "gptless-api/1.0"
 
 
 def is_valid_email(value: object) -> bool:
@@ -114,13 +120,24 @@ def send_invoice_notification(
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        "User-Agent": _RESEND_USER_AGENT,
     }
 
     with httpx.Client(timeout=30) as client:
         resp = client.post(
             "https://api.resend.com/emails", headers=headers, json=payload
         )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            # Helps debug CI/local when Resend returns 4xx (check Flask logs).
+            body_preview = (exc.response.text or "")[:2000]
+            logger.warning(
+                "Resend API HTTP %s: %s",
+                exc.response.status_code,
+                body_preview,
+            )
+            raise
 
         # Resend returns JSON; we don't need the exact content for the route contract.
         _ = resp.json()
