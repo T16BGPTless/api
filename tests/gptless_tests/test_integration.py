@@ -129,10 +129,9 @@ def test_notify_invoice_invalid_email_400(integration_client):
 def test_notify_invoice_success_200(integration_client):
     """Route: ``POST /v1/invoices/notify/<id>`` (happy path → 200).
 
-    This sends a real email via Resend. To avoid spamming arbitrary recipients, the
-    service overrides the outbound recipient to `RESEND_TO_EMAIL` when set.
-    We still provide a valid recipientEmail input, and we use `RESEND_TO_EMAIL`
-    itself so deliverability checks pass.
+    Sends a real email via Resend. Delivery address is always ``RESEND_TO_EMAIL``;
+    the JSON ``recipientEmail`` is still validated by the API (use a deliverable
+    address; here we reuse ``RESEND_TO_EMAIL`` for simplicity).
     """
     resend_to = os.environ.get("RESEND_TO_EMAIL", "").strip()
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import html
 import io
 import logging
 import os
@@ -86,18 +87,26 @@ def send_invoice_notification(
     invoice_id: str,
     pdf_bytes: bytes,
 ) -> None:
-    """Send the invoice PDF to `recipient_email` using Resend."""
+    """Send the invoice PDF via Resend.
+
+    The API body may contain a requested ``recipient_email`` (validated by the route).
+    Outbound delivery always goes to ``RESEND_TO_EMAIL`` so ops can use a single inbox.
+    """
     api_key = require_env("RESEND_API_KEY")
     from_email = require_env("RESEND_FROM_EMAIL")
-    override_to = os.environ.get("RESEND_TO_EMAIL", "").strip()
-    to_email = override_to or recipient_email
+    to_email = require_env("RESEND_TO_EMAIL")
 
     subject = f"Invoice {invoice_id}"
-    html = (
+    safe_recipient = html.escape(recipient_email, quote=True)
+    html_body = (
+        f"<p>Requested recipient: {safe_recipient}</p>"
         f"<p>Please find your invoice <strong>{invoice_id}</strong> attached.</p>"
         "<p>Thank you.</p>"
     )
-    text = f"Please find your invoice {invoice_id} attached."
+    text = (
+        f"Requested recipient: {recipient_email}\n\n"
+        f"Please find your invoice {invoice_id} attached."
+    )
 
     filename = f"invoice-{invoice_id}.pdf"
     pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
@@ -106,7 +115,7 @@ def send_invoice_notification(
         "from": from_email,
         "to": [to_email],
         "subject": subject,
-        "html": html,
+        "html": html_body,
         "text": text,
         "attachments": [
             {

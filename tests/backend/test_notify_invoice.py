@@ -64,8 +64,7 @@ def test_notify_invoice_success_200(client):
         ),
         patch("app.routes.invoices.send_invoice_notification", return_value=None),
     ):
-        # Use the Resend sink recipient that the service is configured to send to.
-        # (This route test still mocks the send, but keeps the payload consistent.)
+        # Real sends use RESEND_TO_EMAIL; this test mocks send but sets env for consistency.
         resend_to = "accounts@example.com"
         with patch.dict("os.environ", {"RESEND_TO_EMAIL": resend_to}, clear=False):
             resp = client.post(
