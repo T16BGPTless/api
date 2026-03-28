@@ -305,7 +305,7 @@ def notify_invoice(invoice_id):
 
     resp = (
         supabase.table("api_invoices")
-        .select("owner_token, xml, deleted")
+        .select("owner_token, xml, invoice_data, deleted")
         .eq("id", invoice_id)
         .limit(1)
     )
