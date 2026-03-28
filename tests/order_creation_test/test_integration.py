@@ -31,7 +31,19 @@ def cleanup_group(group_name):
     )
 
 
-def create_order_external():
+def get_external_token():
+    res = requests.post(f"{OTHER_API}/auth/register", json={
+        "email": f"test_{uuid.uuid4()}@example.com",
+        "password": "StrongPassword123!",
+        "nameFirst": "Integration",
+        "nameLast": "Tester"
+    })
+
+    assert res.status_code == 201, res.text
+    return res.json()["token"]
+
+
+def create_order_external(token):
     payload = {
         "ID": f"ORD-{uuid.uuid4()}",
         "IssueDate": "2026-03-16",
@@ -58,36 +70,27 @@ def create_order_external():
         ]
     }
 
-    res = requests.post(f"{OTHER_API}/orders", json=payload)
+    res = requests.post(
+        f"{OTHER_API}/orders",
+        json=payload,
+        headers={"token": token}
+    )
+
     assert res.status_code == 201, res.text
 
     data = res.json()
-    result = data.get("result", {})
+    result = data.get("result", data)
 
-    order_id = (
-        data.get("orderId") or
-        data.get("_id") or
-        result.get("orderId")
-    )
+    order_id = result.get("orderId")
+    ubl_url = result.get("ublXmlUrl")
 
-    assert order_id is not None, f"Missing orderId in response: {data}"
-    assert order_id is not None, f"Missing orderId in response: {data}"
+    assert order_id is not None, f"Missing orderId: {data}"
+    assert ubl_url is not None, f"Missing ublXmlUrl: {data}"
 
-    return order_id
+    if ubl_url.startswith("/"):
+        ubl_url = f"{OTHER_API}{ubl_url}"
 
-
-def get_order_xml(order_id):
-    possible_urls = [
-        f"{OTHER_API}/orders/{order_id}/xml",
-        f"{OTHER_API}/order/orders/{order_id}/xml",
-    ]
-
-    for url in possible_urls:
-        res = requests.get(url)
-        if res.status_code == 200:
-            return res.text
-
-    pytest.fail("Could not retrieve XML from external API")
+    return order_id, ubl_url
 
 
 def convert_order(xml, api_token):
@@ -118,7 +121,7 @@ def generate_invoice(invoice_data, api_token):
     assert res.status_code == 201, res.text
 
     xml = res.text
-    assert xml.strip().startswith("<"), "Invalid XML response"
+    assert "<Invoice" in xml, "Invalid Invoice XML response"
 
     return xml
 
@@ -133,17 +136,48 @@ def generate_invoice(invoice_data, api_token):
 
 def test_order_to_invoice_integration():
     group_name, api_token = register_group()
+    external_token = get_external_token()
 
     try:
-        order_id = create_order_external()
-        
-        xml = get_order_xml(order_id)
+        # Step 1
+        order_id, ubl_url = create_order_external(external_token)
+
+        # Step 2
+        res = requests.get(
+            ubl_url,
+            headers={"token": external_token}
+        )
+        assert res.status_code == 200
+        xml = res.text
         assert len(xml) > 0, "Empty XML received"
 
+        # Step 3
         invoice_data = convert_order(xml, api_token)
-        assert isinstance(invoice_data, dict), "InvoiceData not a dict"
+        assert isinstance(invoice_data, dict)
 
+        # Step 4
         invoice_xml = generate_invoice(invoice_data, api_token)
-        assert "<Invoice" in invoice_xml or "<" in invoice_xml
+        assert "<Invoice" in invoice_xml
+
+    finally:
+        # Step 5
+        cleanup_group(group_name)
+
+
+def test_convert_invalid_xml():
+    group_name, api_token = register_group()
+
+    try:
+        res = requests.post(
+            f"{OUR_API}/v1/orders/convert",
+            data="this is not xml",
+            headers={
+                "APItoken": api_token,
+                "Content-Type": "application/xml"
+            }
+        )
+
+        assert res.status_code == 400
+
     finally:
         cleanup_group(group_name)
