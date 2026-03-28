@@ -15,7 +15,7 @@ from xhtml2pdf import pisa
 logger = logging.getLogger(__name__)
 
 # Resend may return 403 (e.g. error code 1010) if User-Agent is missing or not accepted.
-_RESEND_USER_AGENT = "gptless-api/1.0"
+RESEND_USER_AGENT = "gptless-api/1.0"
 
 
 def is_valid_email(value: object) -> bool:
@@ -120,7 +120,7 @@ def send_invoice_notification(
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "User-Agent": _RESEND_USER_AGENT,
+        "User-Agent": RESEND_USER_AGENT,
     }
 
     with httpx.Client(timeout=30) as client:
