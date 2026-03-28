@@ -65,7 +65,14 @@ jobs:
       - name: Run pgTAP database tests
         run: supabase test db
       
+      # Resend must be present in THIS step's environment. The Flask process does not
+      # inherit env vars from a *later* step (pytest); otherwise notify hits 500 and no mail is sent.
       - name: Start local Flask API (for black-box tests)
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          RESEND_TO_EMAIL: ${{ secrets.RESEND_TO_EMAIL }}
+          # Supabase already on GITHUB_ENV from "Export Supabase env" (loaded for every step).
         run: |
           PYTHONPATH=. python -m app.app > /tmp/flask_api.log 2>&1 &
           echo $! > /tmp/flask_api.pid
