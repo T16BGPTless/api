@@ -148,5 +148,8 @@ def send_invoice_notification(
             )
             raise
 
-        # Resend returns JSON; we don't need the exact content for the route contract.
-        _ = resp.json()
+        data = resp.json() if resp.content else {}
+        # Resend returns {"id": "..."}; log it so you can match the send in the dashboard.
+        email_id = data.get("id") if isinstance(data, dict) else None
+        if email_id:
+            logger.info("Resend accepted email id=%s to=%s", email_id, to_email)
