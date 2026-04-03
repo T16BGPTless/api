@@ -17,15 +17,39 @@ logger = logging.getLogger(__name__)
 
 # Resend may return 403 (e.g. error code 1010) if User-Agent is missing or not accepted.
 RESEND_USER_AGENT = "gptless-api/1.0"
+BLOCKED_EMAIL_DOMAINS = {
+    "ad.unsw.edu.au",
+    "unsw.edu.au",
+}
+BLOCKED_EMAIL_SUFFIXES = (
+    ".edu",
+    ".edu.au",
+    ".edu.nz",
+    ".edu.uk",
+    ".ac.uk",
+    ".ac.nz",
+    ".ac.jp",
+)
+
+
+def is_blocked_educational_domain(domain: str) -> bool:
+    """Return True if domain matches blocked educational domains/suffixes."""
+    lowered = domain.lower()
+    return lowered in BLOCKED_EMAIL_DOMAINS or any(
+        lowered.endswith(suffix) for suffix in BLOCKED_EMAIL_SUFFIXES
+    )
 
 
 def is_valid_email(value: object) -> bool:
-    """Validate an email address for API input checks."""
+    """Validate an email address and block educational domains."""
     if not isinstance(value, str) or not value.strip():
         return False
     try:
-        validate_email(value, check_deliverability=True)
-        return True
+        info = validate_email(value, check_deliverability=True)
+        domain = getattr(info, "domain", "") or ""
+        if not domain:
+            return False
+        return not is_blocked_educational_domain(domain)
     except EmailNotValidError:
         return False
 

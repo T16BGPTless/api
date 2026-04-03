@@ -93,6 +93,22 @@ def test_notify_invoice_invalid_email_400(client):
     assert body["error"] == "BAD_REQUEST"
 
 
+def test_notify_invoice_educational_email_400(client):
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+    ):
+        resp = client.post(
+            "/v1/invoices/notify/12345",
+            json={"recipientEmail": "student@ad.unsw.edu.au"},
+            headers={"APItoken": "valid-token"},
+        )
+
+    assert resp.status_code == HTTPStatus.BAD_REQUEST
+    body = resp.get_json()
+    assert body["error"] == "BAD_REQUEST"
+
+
 @pytest.mark.parametrize("payload", [{}, {"recipientEmail": ""}])
 def test_notify_invoice_missing_or_empty_recipient_email_400(client, payload):
     with (
