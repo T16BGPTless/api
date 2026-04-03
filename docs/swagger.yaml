@@ -1044,11 +1044,11 @@ paths:
       - $ref: "#/components/parameters/InvoiceId"
 
     post:
-      tags: [Unimplemented (stretch goals/ideas)]
+      tags: [Invoices]
       summary: Send invoice notification
       description: |
         Creates an email from the given invoice, converts it into a pdf and sends it to a specified recipient.
-        This can be used to notify a customer or other party with the invoice attached or included.
+        This can be used to notify a customer or other party with the invoice attached or included. No educational email domains are allowed.
 
       requestBody:
         required: true
@@ -1075,7 +1075,7 @@ paths:
           description: |
             **Bad Request**
             
-            Missing or invalid email to send to.
+            Missing/invalid email to send to, or educational email domains are blocked (for example `@ad.unsw.edu.au`).
           content:
             application/json:
               schema:

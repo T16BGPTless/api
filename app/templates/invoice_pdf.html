@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 12px;
+        color: #111;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 6px 0;
+      }
+      .muted {
+        color: #555;
+      }
+      .row {
+        width: 100%;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        clear: both;
+      }
+      .col {
+        width: 48%;
+        display: inline-block;
+        vertical-align: top;
+      }
+      .right {
+        text-align: right;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 6px;
+        vertical-align: top;
+      }
+      th {
+        background: #f3f3f3;
+      }
+      .totals {
+        margin-top: 12px;
+        width: 100%;
+      }
+      .totals td {
+        border: none;
+        padding: 2px 0;
+      }
+      .totals .label {
+        text-align: right;
+        padding-right: 12px;
+        color: #555;
+      }
+      .totals .value {
+        text-align: right;
+        width: 120px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <div class="col">
+        <h1>Invoice {{ invoice_id }}</h1>
+        <div class="muted">Issue date: {{ issue_date }}</div>
+        <div class="muted">Due date: {{ due_date }}</div>
+      </div>
+      <div class="col right">
+        <div><strong>Currency:</strong> {{ currency }}</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <div><strong>Supplier</strong></div>
+        <div>{{ supplier_name }}</div>
+        <div class="muted">ABN: {{ supplier_abn }}</div>
+      </div>
+      <div class="col">
+        <div><strong>Customer</strong></div>
+        <div>{{ customer_name }}</div>
+        <div class="muted">ABN: {{ customer_abn }}</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 60px">Line</th>
+          <th>Description</th>
+          <th style="width: 80px" class="right">Qty</th>
+          <th style="width: 110px" class="right">Unit price</th>
+          <th style="width: 110px" class="right">Line total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in lines %}
+        <tr>
+          <td>{{ line.lineId }}</td>
+          <td>{{ line.description }}</td>
+          <td class="right">{{ line.quantity }}</td>
+          <td class="right">{{ line.unitPrice }}</td>
+          <td class="right">{{ line.lineTotal }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <table class="totals">
+      <tr>
+        <td class="label">Total</td>
+        <td class="value">{{ total_amount }}</td>
+      </tr>
+    </table>
+  </body>
+</html>

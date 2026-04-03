@@ -66,3 +66,13 @@ def valid_order_xml_payload() -> str:
     </cac:LineItem>
   </cac:OrderLine>
 </Order>"""
+
+
+def valid_recipient_email() -> str:
+    """Return a valid recipient email address for happy-path tests."""
+    return "accounts@gptless.com"
+
+
+def invalid_recipient_email() -> str:
+    """Return an intentionally invalid recipient email for 400 tests."""
+    return "not-an-email"

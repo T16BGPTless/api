@@ -105,4 +105,24 @@ class InvoicingApiClient:
         headers = {"Content-Type": "application/xml"}
         if with_auth and self.api_token:
             headers["APItoken"] = self.api_token
-        return self._request("POST", "/v1/orders/convert", headers=headers, body=xml_payload)
+        return self._request(
+            "POST", "/v1/orders/convert", headers=headers, body=xml_payload
+        )
+
+    def notify_invoice(
+        self,
+        invoice_id: str,
+        *,
+        recipient_email: str,
+        with_auth: bool = True,
+    ) -> ApiResponse:
+        """Send invoice notification (email + PDF attachment)."""
+        headers = {"Accept": "application/json"}
+        if with_auth and self.api_token:
+            headers["APItoken"] = self.api_token
+        return self._request(
+            "POST",
+            f"/v1/invoices/notify/{invoice_id}",
+            headers=headers,
+            body=json.dumps({"recipientEmail": recipient_email}),
+        )

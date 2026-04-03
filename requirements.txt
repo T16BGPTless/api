@@ -5,3 +5,7 @@ pylint==4.0.5
 pytest==9.0.2
 coverage==7.13.4
 xmltodict==0.14.2
+email-validator==2.3.0
+xhtml2pdf==0.2.17
+# Pin to avoid cairo/pycairo dependency introduced in svglib>=1.6.0
+svglib==1.5.1

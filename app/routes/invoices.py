@@ -3,6 +3,11 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, Response
 from app.services.invoice_xml import build_invoice_xml
+from app.services.invoice_notify import (
+    invoice_data_to_pdf_bytes,
+    is_valid_email,
+    send_invoice_notification,
+)
 from app.routes.helpers import (
     sb_has_error,
     sb_execute,
@@ -188,7 +193,7 @@ def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
 
     resp = (
         supabase.table("api_invoices")
-        .select("owner_token, xml, deleted")
+        .select("owner_token, xml, invoice_data, deleted")
         .eq("id", invoice_id)
         .limit(1)
     )
@@ -213,11 +218,18 @@ def get_invoice(invoice_id):  # pylint: disable=too-many-return-statements
     if invoice.get("owner_token") != group_id:
         return return_error("FORBIDDEN")
 
-    return Response(
-        invoice.get("xml") or "",
-        mimetype="application/xml",
-        status=HTTPStatus.OK,
-    )
+    xml_str = invoice.get("xml")
+    if not isinstance(xml_str, str) or not xml_str.strip():
+        # Fallback: rebuild XML from stored invoice_data
+        invoice_data = invoice.get("invoice_data")
+        if isinstance(invoice_data, dict) and invoice_data:
+            invoice_data = invoice_data.copy()
+            invoice_data["invoiceID"] = str(invoice_id)
+            xml_str = build_invoice_xml(invoice_data)
+        else:
+            xml_str = ""
+
+    return Response(xml_str, mimetype="application/xml", status=HTTPStatus.OK)
 
 
 # ------------------- DELETE /v1/invoices/<int:invoice_id> -------------------
@@ -264,3 +276,76 @@ def delete_invoice(invoice_id):  # pylint: disable=too-many-return-statements
         return return_error("INTERNAL_SERVER_ERROR")
 
     return "", HTTPStatus.NO_CONTENT
+
+
+@invoices_bp.route("/v1/invoices/notify/<int:invoice_id>", methods=["POST"])
+def notify_invoice(invoice_id):
+    """
+    Notify a recipient with the invoice PDF attached.
+
+    Contract: requires `APItoken` header + JSON body { "recipientEmail": "..." }.
+    """
+    supabase, api_token, error = require_api_token()
+    if error is not None:
+        return error
+
+    body = request.get_json(silent=True) or {}
+    recipient_email = body.get("recipientEmail")
+    if not is_valid_email(recipient_email):
+        return (
+            jsonify(
+                {"error": "BAD_REQUEST", "message": "Missing or invalid input data"}
+            ),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    group_id, err = get_group_id_from_token(supabase, api_token)
+    if err is not None:
+        return err
+
+    resp = (
+        supabase.table("api_invoices")
+        .select("owner_token, xml, invoice_data, deleted")
+        .eq("id", invoice_id)
+        .limit(1)
+    )
+    resp_exec = sb_execute(resp)
+    if resp_exec is None or sb_has_error(resp_exec):
+        return return_error("INTERNAL_SERVER_ERROR")
+
+    if not resp_exec.data:
+        return return_error("NOT_FOUND")
+
+    invoice = resp_exec.data[0]
+
+    if invoice.get("deleted"):
+        return return_error("NOT_FOUND")
+
+    if invoice.get("owner_token") != group_id:
+        return return_error("FORBIDDEN")
+
+    invoice_data = invoice.get("invoice_data")
+    if not isinstance(invoice_data, dict) or not invoice_data:
+        return return_error("INTERNAL_SERVER_ERROR")
+
+    try:
+        pdf_bytes = invoice_data_to_pdf_bytes(
+            invoice_id=str(invoice_id), invoice_data=invoice_data
+        )
+        send_invoice_notification(
+            recipient_email=recipient_email,
+            invoice_id=str(invoice_id),
+            pdf_bytes=pdf_bytes,
+        )
+    except Exception:  # pylint: disable=broad-exception-caught
+        return (
+            jsonify(
+                {
+                    "error": "INTERNAL_SERVER_ERROR",
+                    "message": "Failed to send invoice notification",
+                }
+            ),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
+        )
+
+    return jsonify({"success": True}), HTTPStatus.OK
