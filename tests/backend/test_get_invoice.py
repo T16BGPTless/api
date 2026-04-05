@@ -187,3 +187,51 @@ def test_get_invoice_wrong_owner(client):
     ):
         response = client.get("/v1/invoices/123", headers={"APItoken": "my-token"})
         assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_get_invoice_rebuilds_xml_from_invoice_data(client):
+    """Blank XML falls back to stored invoice_data and rebuilds the response."""
+    mock_invoice = MockResponse(
+        data=[
+            {
+                "owner_token": 10,
+                "xml": "",
+                "invoice_data": {
+                    "issueDate": "2026-03-25",
+                    "dueDate": "2026-04-01",
+                    "currency": "AUD",
+                    "totalAmount": "110.00",
+                    "supplier": {"name": "ACME Pty Ltd", "ABN": "12345678901"},
+                    "customer": {"name": "Example Co", "ABN": "10987654321"},
+                    "lines": [
+                        {
+                            "description": "Widget",
+                            "quantity": 1,
+                            "unitPrice": "100.00",
+                            "lineTotal": "100.00",
+                        }
+                    ],
+                },
+                "deleted": False,
+            }
+        ]
+    )
+    mock_group_lookup = MockResponse(data=[{"id": 10}])
+
+    with (
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch("app.routes.invoices.build_invoice_xml", return_value="<Invoice>rebuild</Invoice>") as mock_build,
+        patch(
+            "app.routes.invoices.sb_execute",
+            side_effect=[mock_invoice, mock_group_lookup],
+        ),
+        patch("app.routes.invoices.sb_has_error", return_value=False),
+    ):
+        response = client.get("/v1/invoices/123", headers={"APItoken": "valid-token"})
+
+    assert response.status_code == HTTPStatus.OK
+    assert b"rebuild" in response.data
+    assert mock_build.call_count == 1
+    called_invoice_data = mock_build.call_args.args[0]
+    assert called_invoice_data["invoiceID"] == "123"

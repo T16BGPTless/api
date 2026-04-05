@@ -185,6 +185,82 @@ def test_notify_invoice_wrong_owner_403(client):
     assert resp.get_json()["error"] == "FORBIDDEN"
 
 
+def test_notify_invoice_db_execution_error_500(client):
+    with (
+        patch("app.routes.invoices.is_valid_email", return_value=True),
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch("app.routes.invoices.get_group_id_from_token", return_value=(10, None)),
+        patch("app.routes.invoices.sb_execute", return_value=None),
+    ):
+        resp = client.post(
+            "/v1/invoices/notify/12345",
+            json={"recipientEmail": "accounts@example.com"},
+            headers={"APItoken": "valid-token"},
+        )
+
+    assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert resp.get_json()["error"] == "INTERNAL_SERVER_ERROR"
+
+
+def test_notify_invoice_deleted_404(client):
+    with (
+        patch("app.routes.invoices.is_valid_email", return_value=True),
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch("app.routes.invoices.get_group_id_from_token", return_value=(10, None)),
+        patch(
+            "app.routes.invoices.sb_execute",
+            return_value=MockResponse(
+                data=[
+                    {
+                        "owner_token": 10,
+                        "invoice_data": {"issueDate": "2026-03-25"},
+                        "deleted": True,
+                    }
+                ]
+            ),
+        ),
+    ):
+        resp = client.post(
+            "/v1/invoices/notify/12345",
+            json={"recipientEmail": "accounts@example.com"},
+            headers={"APItoken": "valid-token"},
+        )
+
+    assert resp.status_code == HTTPStatus.NOT_FOUND
+    assert resp.get_json()["error"] == "NOT_FOUND"
+
+
+def test_notify_invoice_missing_invoice_data_500(client):
+    with (
+        patch("app.routes.invoices.is_valid_email", return_value=True),
+        patch("app.routes.invoices.get_db", return_value=MagicMock()),
+        patch("app.routes.invoices.is_valid_api_token", return_value=True),
+        patch("app.routes.invoices.get_group_id_from_token", return_value=(10, None)),
+        patch(
+            "app.routes.invoices.sb_execute",
+            return_value=MockResponse(
+                data=[
+                    {
+                        "owner_token": 10,
+                        "invoice_data": {},
+                        "deleted": False,
+                    }
+                ]
+            ),
+        ),
+    ):
+        resp = client.post(
+            "/v1/invoices/notify/12345",
+            json={"recipientEmail": "accounts@example.com"},
+            headers={"APItoken": "valid-token"},
+        )
+
+    assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert resp.get_json()["error"] == "INTERNAL_SERVER_ERROR"
+
+
 def test_notify_invoice_conversion_failure_500(client):
     with (
         patch("app.routes.invoices.is_valid_email", return_value=True),
